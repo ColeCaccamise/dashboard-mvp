@@ -8,8 +8,16 @@ dotenv.config({ path: './config/config.env' });
 const PORT = process.env.PORT || 5050;
 
 const users = require('./routes/users');
+const auth = require('./routes/auth');
+const profile = require('./routes/profile');
+const settings = require('./routes/settings');
+const dashboard = require('./routes/dashboard');
 
 app.use('/api/v1/users', users);
+app.use('/api/v1/auth', auth);
+// app.use('/api/v1/profile', profile);
+// app.use('/api/v1/settings', settings);
+// app.use('/api/v1/dashboard', dashboard);
 
 app.listen(PORT, () => {
 	console.log(

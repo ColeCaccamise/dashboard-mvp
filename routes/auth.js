@@ -1,17 +1,12 @@
 const express = require('express');
 const router = express.Router();
 
-const users = [
-	{ id: 1, name: 'Cole Caccamise' },
-	{ id: 2, name: 'Steven Bartlett' },
-	{ id: 3, name: 'Brad Traversy' },
-	{ id: 4, name: 'Elon Musk' },
-];
-
 router.use(express.json()); // not including this resulted in an undefined req.body
 
-router.route('/').get((req, res) => {
-	res.json(users);
+router.route('/').all((req, res) => {
+	const method = req.method;
+	console.log(method);
+	res.status(405).json({ message: `${method} method not supported.` }); // Return 405 for unsupported methods
 });
 
 router
@@ -57,11 +52,11 @@ router
 		const indexToDelete = users.findIndex((u) => u.id == user.id);
 		users.splice(indexToDelete, 1);
 		res.json(users);
+	})
+	.all((req, res) => {
+		const method = req.method;
+		console.log(method);
+		res.status(405).json({ message: `${method} method not supported.` }); // Return 405 for unsupported methods
 	});
-
-router.all('*', (req, res) => {
-	const method = req.method;
-	res.status(405).json({ message: `${method} method not allowed` });
-});
 
 module.exports = router;
