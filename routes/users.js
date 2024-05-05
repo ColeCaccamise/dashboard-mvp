@@ -10,9 +10,16 @@ const users = [
 
 router.use(express.json()); // not including this resulted in an undefined req.body
 
-router.get('/', (req, res) => {
-	res.json(users);
-});
+router
+	.route('/')
+	.get((req, res) => {
+		res.json(users);
+	})
+	.all((req, res) => {
+		const method = req.method;
+		console.log(method);
+		res.status(405).json({ message: `${method} method not supported.` }); // Return 405 for unsupported methods
+	});
 
 router
 	.route('/:id')
@@ -57,6 +64,11 @@ router
 		const indexToDelete = users.findIndex((u) => u.id == user.id);
 		users.splice(indexToDelete, 1);
 		res.json(users);
+	})
+	.all((req, res) => {
+		const method = req.method;
+		console.log(method);
+		res.status(405).json({ message: `${method} method not supported.` }); // Return 405 for unsupported methods
 	});
 
 module.exports = router;
