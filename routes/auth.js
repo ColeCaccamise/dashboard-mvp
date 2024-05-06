@@ -100,12 +100,12 @@ router.route('/register').post((req, res) => {
 		return;
 	}
 
-	const token = jwt.sign({ user: 'username' }, process.env.JWT_SECRET);
+	const token = jwt.sign({ user: 'username' }, JWT_SECRET);
 
 	let decoded;
 
 	try {
-		decoded = jwt.verify(token, process.env.JWT_SECRET);
+		decoded = jwt.verify(token, JWT_SECRET);
 	} catch (err) {
 		console.log(err);
 		res.status(401).json({ error: 'Invalid token.' });
