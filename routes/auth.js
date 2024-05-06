@@ -14,6 +14,8 @@ const userCredentials = [
 		password: 'brody123',
 		userId: 1,
 		decoded: '',
+		lastSignIn: null,
+		isSignedIn: false,
 	},
 	{
 		username: 'stevenbartlett',
@@ -21,6 +23,8 @@ const userCredentials = [
 		password: 'web3',
 		userId: 2,
 		decoded: null,
+		lastSignIn: null,
+		isSignedIn: false,
 	},
 ];
 
@@ -108,14 +112,14 @@ router.route('/register').post((req, res) => {
 		return;
 	}
 
-	console.log(`Decoded token: ${JSON.stringify(decoded)}`);
-
 	if (!token) {
 		res
 			.status(500)
 			.json({ error: 'An error occurred while generating a user token.' });
 		return;
 	}
+
+	console.log(decoded);
 
 	userCredentials.push({ username, password, email, userId, decoded });
 
@@ -127,25 +131,71 @@ router.route('/register').post((req, res) => {
 });
 
 router.route('/login').post((req, res) => {
-	const id = parseInt(req.params.id);
-	const includesUser = users.some((user) => user.id == id);
-	if (includesUser) {
-		res.status(409).json({ error: 'A user already exists with ID ${id}' });
+	const { username, password, email } = req.body;
+	if (!username && !email) {
+		res.status(400).json({ error: 'Username or email required.' });
 		return;
 	}
-	users.push({ id: id, name: req.body.name });
-	res.json(users);
+
+	let user;
+
+	if (email) {
+		const emailExists = userCredentials.some((user) => user.email == email);
+		if (!emailExists) {
+			res.status(400).json({ error: 'No user found with that email.' });
+			return;
+		}
+		user = userCredentials.find((user) => user.email == email);
+	} else {
+		const usernameExists = userCredentials.some(
+			(user) => user.username == username
+		);
+		if (!usernameExists) {
+			res.status(400).json({ error: 'No user found with that username.' });
+			return;
+		}
+		user = userCredentials.find((user) => user.username == username);
+	}
+
+	if (user.password !== password) {
+		res.status(400).json({ error: 'Wrong password.' });
+		return;
+	}
+
+	user.lastSignIn = new Date();
+	user.isSignedIn = true;
+	res.json({ message: 'User logged in successfully.', user });
 });
 
 router.route('/logout').post((req, res) => {
-	const id = parseInt(req.params.id);
-	const includesUser = users.some((user) => user.id == id);
-	if (includesUser) {
-		res.status(409).json({ error: 'A user already exists with ID ${id}' });
+	const { username, email } = req.body;
+	if (!username && !email) {
+		res.status(400).json({ error: 'Username or email required.' });
 		return;
 	}
-	users.push({ id: id, name: req.body.name });
-	res.json(users);
+
+	let user;
+
+	if (email) {
+		const emailExists = userCredentials.some((user) => user.email == email);
+		if (!emailExists) {
+			res.status(400).json({ error: 'No user found with that email.' });
+			return;
+		}
+		user = userCredentials.find((user) => user.email == email);
+	} else {
+		const usernameExists = userCredentials.some(
+			(user) => user.username == username
+		);
+		if (!usernameExists) {
+			res.status(400).json({ error: 'No user found with that username.' });
+			return;
+		}
+		user = userCredentials.find((user) => user.username == username);
+	}
+
+	user.isSignedIn = false;
+	res.json({ message: 'User logged out successfully.', user });
 });
 
 router.all('*', (req, res) => {
