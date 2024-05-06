@@ -16,7 +16,7 @@ const dashboard = require('./routes/dashboard');
 app.use('/api/v1/users', users);
 app.use('/api/v1/auth', auth);
 app.use('/api/v1/profiles', profiles);
-// app.use('/api/v1/settings', settings);
+app.use('/api/v1/settings', settings);
 // app.use('/api/v1/dashboard', dashboard);
 
 app.listen(PORT, () => {
