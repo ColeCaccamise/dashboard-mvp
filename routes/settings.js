@@ -3,38 +3,74 @@ const router = express.Router();
 
 const userSettings = [
 	{
-		userId: 1,
-		name: 'Cole Caccamise',
-		username: 'colecaccamise',
-		email: 'cole@dashboard-mvp.com',
-		profilePicture: 'https://via.placeholder.com/150',
-		bio: 'CEO of Dashboard MVP',
+		userInfo: {
+			userId: 1,
+			name: 'Cole Caccamise',
+			username: 'colecaccamise',
+			email: 'cole@dashboard-mvp.com',
+		},
+		notificationsEnabled: false,
+		userLanguage: 'en',
+		userTimezone: 'America/New_York',
+		userCommunicationPreference: 'email',
+		theme: 'dark',
+		twoFactorAuthEnabled: false,
+		billing: {
+			plan: 'pro',
+			creditCard: {
+				lastFour: '4242',
+				expiration: '12/24',
+			},
+		},
 	},
 	{
-		userId: 2,
-		name: 'Steven Bartlett',
-		username: 'stevenbartlett',
-		email: 'steve@doac.com',
-		profilePicture: 'https://via.placeholder.com/150',
-		bio: 'CEO of The Social Chain Group',
+		userInfo: {
+			userId: 2,
+			name: 'Steven Bartlett',
+			username: 'stevenbartlett',
+			email: 'steve@doac.com',
+		},
+		notificationsEnabled: false,
+		userLanguage: 'en',
+		userTimezone: 'America/New_York',
+		userCommunicationPreference: 'email',
+		theme: 'dark',
+		twoFactorAuthEnabled: false,
+		billing: {
+			plan: 'free',
+			creditCard: null,
+		},
 	},
 ];
+
+const defaultValues = {
+	notificationsEnabled: false,
+	userLanguage: 'en',
+	userTimezone: 'America/New_York',
+	userCommunicationPreference: 'email',
+	theme: 'dark',
+	twoFactorAuthEnabled: false,
+	billing: {
+		plan: 'free',
+		creditCard: null,
+	},
+};
 
 router.use(express.json()); // not including this resulted in an undefined req.body
 
 router.route('/').get((req, res) => {
-	res.json(userProfiles);
+	res.json(userSettings);
 });
 
 router
 	.route('/:id')
 	.get((req, res) => {
 		const id = parseInt(req.params.id);
-		const user = userProfiles.find((user) => user.userId == id);
+		const user = userSettings.find((user) => user.userId == id);
 		if (!user) {
 			res
 				.status(404)
-				.json({ error: `No user profile was found with userId ${id}` });
+				.json({ error: `No user settings were found for userId ${id}` });
 			return;
 		}
 		res.json(user);
@@ -42,36 +78,47 @@ router
 	.post((req, res) => {
 		const id = parseInt(req.params.id);
 		if (isNaN(id)) {
-			res.status(400).json({ error: 'ID must be a number' });
+			res.status(400).json({
+				error: 'User settings id must be a number',
+				errorType: 'invalidId',
+			});
 			return;
 		}
-		const includesUser = userProfiles.some((user) => user.userId == id);
+
+		const includesUser = userSettings.some((user) => user.userId == id);
 
 		if (includesUser) {
-			res
-				.status(409)
-				.json({ error: `A user profile already exists with userId ${id}` });
+			res.status(409).json({
+				error: `A user with userId ${id} already has settings`,
+				errorType: 'alreadyExists',
+			});
 			return;
 		}
 
 		if (Object.keys(req.body).length === 0) {
 			res.status(400).json({
 				error:
-					'Request body is missing. Required fields: name, username, email, profilePicture, bio.',
+					'Request body is missing. Required fields: userInfo (object with keys name, username, email). Optional fields: notificationsEnabled, userLanguage, userTimezone, userCommunicationPreference, theme, twoFactorAuthEnabled, billing.',
 				errorType: 'missingBody',
 			});
 			return;
 		}
 
-		const { name, username, email, profilePicture, bio } = req.body;
+		const {
+			userInfo,
+			notificationsEnabled,
+			userLanguage,
+			userTimezone,
+			userCommunicationPreference,
+		} = req.body;
 
 		const missingFields = [];
 
-		if (!name) {
-			missingFields.push('name');
+		if (!userInfo) {
+			missingFields.push('userInfo');
 		}
-		if (!username) {
-			missingFields.push('username');
+		if (!notificationsEnabled) {
+			missingFields.push('notificationsEnabled');
 		}
 		if (!email) {
 			missingFields.push('email');
