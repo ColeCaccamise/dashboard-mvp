@@ -7,6 +7,15 @@ dotenv.config({ path: './config/config.env' });
 
 const PORT = process.env.PORT || 5050;
 
+const logger = (req, res, next) => {
+	console.log('\n');
+	console.log(`${req.method} ${req.url} - ${new Date().toISOString()}`);
+	console.log('\n');
+	next();
+};
+
+app.use(logger);
+
 const users = require('./routes/users');
 const auth = require('./routes/auth');
 const profiles = require('./routes/profiles');
