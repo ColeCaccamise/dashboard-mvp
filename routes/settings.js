@@ -8,17 +8,6 @@ const errorMessages = {
 		'Request body is missing. Required fields: userInfo (object with keys name, username, email). Optional fields: notificationsEnabled, userLanguage, userTimezone, userCommunicationPreference, theme, twoFactorAuthEnabled, billing.',
 };
 
-function findUser(id, next) {
-	const user = userSettings.find((user) => user.userId == id);
-	if (!user) {
-		next({
-			status: 404,
-			message: `No user settings were found for userId ${id}`,
-		});
-	}
-	return user;
-}
-
 const userSettings = [
 	{
 		userInfo: {
@@ -74,6 +63,31 @@ const defaultValues = {
 	},
 };
 
+function findUser(id, next) {
+	console.log('ID: ', id);
+	console.log(userSettings);
+	const user = userSettings.find((user) => user.userInfo['userId'] == id);
+	console.log(userSettings);
+	if (!user) {
+		next({
+			status: 404,
+			message: `No user settings were found for userId ${id}`,
+		});
+	}
+	return user;
+}
+
+function invalidId(id, next) {
+	parsedId = parseInt(id);
+	if (isNaN(id)) {
+		next({
+			status: 400,
+			message: 'User settings id must be a number',
+		});
+	}
+	return parsedId;
+}
+
 router.use(express.json()); // not including this resulted in an undefined req.body
 
 router.route('/').get((req, res) => {
@@ -84,18 +98,25 @@ router
 	.route('/:id')
 	.get((req, res, next) => {
 		const id = parseInt(req.params.id);
+		if (isNaN(id)) {
+			res.json({
+				status: 400,
+				message: 'User settings id must be a number',
+			});
+		}
 		const user = findUser(id, next);
+		if (!user) {
+			res.json({
+				status: 404,
+				message: `No user settings were found for userId ${id}`,
+			});
+		}
 		res.json(user);
 	})
-	.post((req, res) => {
+	.post((req, res, next) => {
 		const id = parseInt(req.params.id);
-		if (isNaN(id)) {
-			res.status(400).json({
-				error: 'User settings id must be a number',
-				errorType: 'invalidId',
-			});
-			return;
-		}
+		invalidId(id, next);
+		const userInfo = req.body['userInfo'];
 
 		const includesUser = userSettings.some((user) => user.userId == id);
 
@@ -115,50 +136,49 @@ router
 			return;
 		}
 
-		const {
-			userInfo,
-			notificationsEnabled,
-			userLanguage,
-			userTimezone,
-			userCommunicationPreference,
-		} = req.body;
-
-		const missingFields = [];
-
 		if (!userInfo) {
-			missingFields.push('userInfo');
-		}
-		if (!notificationsEnabled) {
-			missingFields.push('notificationsEnabled');
-		}
-		if (!email) {
-			missingFields.push('email');
-		}
-		if (!profilePicture) {
-			missingFields.push('profilePicture');
-		}
-		if (!bio) {
-			missingFields.push('bio');
-		}
-
-		if (missingFields.length > 0) {
 			res.status(400).json({
-				error: 'Required field(s) are missing.',
-				errorType: 'missingFields',
-				missingFields: missingFields,
+				error:
+					'Request body is missing. Required fields: userInfo (object with keys name, username, email)',
+				errorType: 'missingBody',
 			});
 			return;
 		}
 
+		const {
+			notificationsEnabled,
+			userLanguage,
+			userTimezone,
+			userCommunicationPreference,
+			billing,
+		} = req.body;
+
+		const fields = {
+			notificationsEnabled,
+			userLanguage,
+			userTimezone,
+			userCommunicationPreference,
+			billing,
+		};
+
+		const settingFields = {};
+
+		for (let field of Object.keys(fields)) {
+			const value = fields[field];
+			if (value === undefined) {
+				settingFields[field] = defaultValues[field];
+			} else {
+				settingFields[field] = fields[field];
+			}
+		}
+
+		console.log(settingFields);
+
 		userSettings.push({
-			userId: id,
-			name,
-			username,
-			email,
-			profilePicture,
-			bio,
+			userInfo,
+			...settingFields,
 		});
-		res.json(userProfiles);
+		res.json(userSettings);
 	})
 	.put((req, res) => {
 		const id = parseInt(req.params.id);
