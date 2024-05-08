@@ -116,9 +116,11 @@ router
 	.post((req, res, next) => {
 		const id = parseInt(req.params.id);
 		invalidId(id, next);
-		const userInfo = req.body['userInfo'];
+		const userInfoData = req.body['userInfo'];
 
-		const includesUser = userSettings.some((user) => user.userId == id);
+		const includesUser = userSettings.some(
+			(user) => user.userInfo['userId'] === id
+		);
 
 		if (includesUser) {
 			res.status(409).json({
@@ -136,7 +138,7 @@ router
 			return;
 		}
 
-		if (!userInfo) {
+		if (!userInfoData) {
 			res.status(400).json({
 				error:
 					'Request body is missing. Required fields: userInfo (object with keys name, username, email)',
@@ -144,6 +146,24 @@ router
 			});
 			return;
 		}
+
+		// loop over the user info object and check if all required fields are present, discard all others
+		const expectedFields = ['name', 'username', 'email'];
+		const userInfo = {
+			userId: id,
+		};
+		for (let field of expectedFields) {
+			if (!userInfoData[field]) {
+				res.status(400).json({
+					error: `userInfo object is missing required field: ${field}`,
+					errorType: 'missingField',
+				});
+				return;
+			}
+			userInfo[field] = userInfoData[field];
+		}
+
+		console.log('updated user info: ', userInfo);
 
 		const {
 			notificationsEnabled,
