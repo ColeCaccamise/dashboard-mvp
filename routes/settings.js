@@ -1,6 +1,24 @@
 const express = require('express');
 const router = express.Router();
 
+const errorMessages = {
+	invalidId: 'User settings id must be a number',
+	alreadyExists: 'A user with userId ${id} already has settings',
+	missingBody:
+		'Request body is missing. Required fields: userInfo (object with keys name, username, email). Optional fields: notificationsEnabled, userLanguage, userTimezone, userCommunicationPreference, theme, twoFactorAuthEnabled, billing.',
+};
+
+function findUser(id, next) {
+	const user = userSettings.find((user) => user.userId == id);
+	if (!user) {
+		next({
+			status: 404,
+			message: `No user settings were found for userId ${id}`,
+		});
+	}
+	return user;
+}
+
 const userSettings = [
 	{
 		userInfo: {
@@ -64,15 +82,9 @@ router.route('/').get((req, res) => {
 
 router
 	.route('/:id')
-	.get((req, res) => {
+	.get((req, res, next) => {
 		const id = parseInt(req.params.id);
-		const user = userSettings.find((user) => user.userId == id);
-		if (!user) {
-			res
-				.status(404)
-				.json({ error: `No user settings were found for userId ${id}` });
-			return;
-		}
+		const user = findUser(id, next);
 		res.json(user);
 	})
 	.post((req, res) => {
@@ -97,8 +109,7 @@ router
 
 		if (Object.keys(req.body).length === 0) {
 			res.status(400).json({
-				error:
-					'Request body is missing. Required fields: userInfo (object with keys name, username, email). Optional fields: notificationsEnabled, userLanguage, userTimezone, userCommunicationPreference, theme, twoFactorAuthEnabled, billing.',
+				error: errorMessages['missingBody'],
 				errorType: 'missingBody',
 			});
 			return;
@@ -139,7 +150,7 @@ router
 			return;
 		}
 
-		userProfiles.push({
+		userSettings.push({
 			userId: id,
 			name,
 			username,
@@ -157,7 +168,7 @@ router
 			return;
 		}
 
-		const profileExists = userProfiles.some((user) => user.userId === id);
+		const profileExists = userSettings.some((user) => user.userId === id);
 
 		if (!profileExists) {
 			res.status(404).json({
@@ -168,8 +179,7 @@ router
 
 		if (Object.keys(req.body).length === 0) {
 			res.status(400).json({
-				error:
-					'Request body is missing. Optional fields (at least 1 is required): name, username, email, profilePicture, bio.',
+				error: errorMessages['missingBody'],
 				errorType: 'missingBody',
 			});
 			return;
@@ -198,7 +208,7 @@ router
 	})
 	.delete((req, res) => {
 		const id = parseInt(req.params.id);
-		const user = userProfiles.find((user) => user.userId === id);
+		const user = userSettings.find((user) => user.userId === id);
 		if (!user) {
 			res
 				.status(404)
