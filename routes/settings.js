@@ -262,10 +262,10 @@ router
 				.json({ error: `Cannot delete. No user was found with ID ${id}` });
 			return;
 		}
-		const indexToDelete = userProfiles.findIndex(
+		const indexToDelete = userSettings.findIndex(
 			(u) => u.userId === user.userId
 		);
-		userProfiles.splice(indexToDelete, 1);
+		userSettings.splice(indexToDelete, 1);
 		res.json(userProfiles);
 	});
 
