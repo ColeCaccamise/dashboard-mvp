@@ -224,6 +224,7 @@ router
 			userCommunicationPreference,
 			billing,
 			theme,
+			userInfo,
 		} = req.body;
 
 		const fields = {
@@ -233,11 +234,13 @@ router
 			userCommunicationPreference,
 			billing,
 			theme,
+			userInfo,
 		};
 
 		const fieldsToUpdate = [];
 
 		// TODO: allow updating of userInfo but NOT id
+		// const updatedUserInfo = fields.userInfo;
 
 		for (let field of Object.keys(fields)) {
 			const value = fields[field];
@@ -247,6 +250,8 @@ router
 			}
 		}
 
+		console.log(fieldsToUpdate);
+
 		for (let field of fieldsToUpdate) {
 			user[field] = fields[field];
 		}
@@ -255,7 +260,7 @@ router
 	})
 	.delete((req, res) => {
 		const id = parseInt(req.params.id);
-		const user = userSettings.find((user) => user.userId === id);
+		const user = userSettings.find((user) => user.userInfo['userId'] === id);
 		if (!user) {
 			res
 				.status(404)
@@ -266,7 +271,7 @@ router
 			(u) => u.userId === user.userId
 		);
 		userSettings.splice(indexToDelete, 1);
-		res.json(userProfiles);
+		res.json(userSettings);
 	});
 
 router.all('*', (req, res) => {
