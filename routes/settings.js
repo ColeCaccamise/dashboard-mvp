@@ -208,41 +208,48 @@ router
 			return;
 		}
 
-		const profileExists = userSettings.some((user) => user.userId === id);
+		const user = userSettings.find((user) => user['userInfo']['userId'] === id);
 
-		if (!profileExists) {
+		if (!user) {
 			res.status(404).json({
 				error: `No user profile was found with userId ${id}`,
 				errorType: 'notFound',
 			});
 		}
 
-		if (Object.keys(req.body).length === 0) {
-			res.status(400).json({
-				error: errorMessages['missingBody'],
-				errorType: 'missingBody',
-			});
-			return;
+		const {
+			notificationsEnabled,
+			userLanguage,
+			userTimezone,
+			userCommunicationPreference,
+			billing,
+			theme,
+		} = req.body;
+
+		const fields = {
+			notificationsEnabled,
+			userLanguage,
+			userTimezone,
+			userCommunicationPreference,
+			billing,
+			theme,
+		};
+
+		const fieldsToUpdate = [];
+
+		// TODO: allow updating of userInfo but NOT id
+
+		for (let field of Object.keys(fields)) {
+			const value = fields[field];
+
+			if (value) {
+				fieldsToUpdate.push(field);
+			}
 		}
 
-		const { name, username, email, profilePicture, bio } = req.body;
-		console.log(name, username, email, profilePicture, bio);
-
-		const user = userProfiles.find((user) => user.userId == id);
-
-		console.log(
-			user.name,
-			user.username,
-			user.email,
-			user.profilePicture,
-			user.bio
-		);
-
-		user.name = name || user.name;
-		user.username = username || user.username;
-		user.email = email || user.email;
-		user.profilePicture = profilePicture || user.profilePicture;
-		user.bio = bio || user.bio;
+		for (let field of fieldsToUpdate) {
+			user[field] = fields[field];
+		}
 
 		res.json(user);
 	})

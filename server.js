@@ -10,6 +10,8 @@ const PORT = process.env.PORT || 5050;
 const logger = (req, res, next) => {
 	console.log('\n');
 	console.log(`${req.method} ${req.url} - ${new Date().toISOString()}`);
+	console.log('\n params: ', req.params);
+	console.log('\n body: ', req.body);
 	console.log('\n');
 	next();
 };
