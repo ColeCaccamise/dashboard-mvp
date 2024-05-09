@@ -1,5 +1,12 @@
-const express = require('express');
-const dotenv = require('dotenv');
+import express from 'express';
+import dotenv from 'dotenv';
+
+// Import routes
+import users from './routes/users.js';
+import auth from './routes/auth.js';
+import profiles from './routes/profiles.js';
+import settings from './routes/settings.js';
+// import dashboard from './routes/dashboard.js';
 
 const app = express();
 
@@ -9,21 +16,16 @@ const PORT = process.env.PORT || 5050;
 
 const logger = (req, res, next) => {
 	console.log('\n');
+	console.log('---------------------------------');
 	console.log(`${req.method} ${req.url} - ${new Date().toISOString()}`);
-	console.log('\n params: ', req.params);
-	console.log('\n body: ', req.body);
-	console.log('\n');
 	next();
+	console.log('---------------------------------');
+	console.log('\n');
 };
 
 app.use(logger);
 
-const users = require('./routes/users');
-const auth = require('./routes/auth');
-const profiles = require('./routes/profiles');
-const settings = require('./routes/settings');
-const dashboard = require('./routes/dashboard');
-
+// router
 app.use('/api/v1/users', users);
 app.use('/api/v1/auth', auth);
 app.use('/api/v1/profiles', profiles);

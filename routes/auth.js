@@ -1,7 +1,7 @@
-const express = require('express');
+import express from 'express';
 const router = express.Router();
-const dotenv = require('dotenv');
-const jwt = require('jsonwebtoken');
+import dotenv from 'dotenv';
+import jwt from 'jsonwebtoken';
 
 dotenv.config({ path: '../config/config.env' });
 
@@ -203,4 +203,4 @@ router.all('*', (req, res) => {
 	res.status(405).json({ message: `${method} method not allowed` });
 });
 
-module.exports = router;
+export default router;

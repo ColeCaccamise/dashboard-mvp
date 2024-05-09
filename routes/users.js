@@ -1,4 +1,4 @@
-const express = require('express');
+import express from 'express';
 const router = express.Router();
 
 const users = [
@@ -64,4 +64,4 @@ router.all('*', (req, res) => {
 	res.status(405).json({ message: `${method} method not allowed` });
 });
 
-module.exports = router;
+export default router;

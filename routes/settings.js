@@ -1,4 +1,4 @@
-const express = require('express');
+import express from 'express';
 const router = express.Router();
 
 const errorMessages = {
@@ -239,9 +239,6 @@ router
 
 		const fieldsToUpdate = [];
 
-		// TODO: allow updating of userInfo but NOT id
-		// const updatedUserInfo = fields.userInfo;
-
 		for (let field of Object.keys(fields)) {
 			const value = fields[field];
 
@@ -253,7 +250,23 @@ router
 		console.log(fieldsToUpdate);
 
 		for (let field of fieldsToUpdate) {
-			user[field] = fields[field];
+			console.log(field);
+			if (field == 'userInfo') {
+				// name, username, email (ONLY values we want to update)
+				const { name, username, email } = fields.userInfo;
+				console.log(name, username, email);
+				if (name) {
+					user.userInfo.name = name;
+				}
+				if (username) {
+					user.userInfo.username = username;
+				}
+				if (email) {
+					user.userInfo.email = email;
+				}
+			} else {
+				user[field] = fields[field];
+			}
 		}
 
 		res.json(user);
@@ -279,4 +292,4 @@ router.all('*', (req, res) => {
 	res.status(405).json({ message: `${method} method not allowed` });
 });
 
-module.exports = router;
+export default router;
