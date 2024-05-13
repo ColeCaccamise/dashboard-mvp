@@ -1,6 +1,10 @@
 import express from 'express';
 import dotenv from 'dotenv';
 
+// import middleware
+import logger from './middleware/logger.js';
+import errorHandler from './middleware/error.js';
+
 // Import routes
 import users from './routes/users.js';
 import auth from './routes/auth.js';
@@ -14,15 +18,6 @@ dotenv.config({ path: './config/config.env' });
 
 const PORT = process.env.PORT || 5050;
 
-const logger = (req, res, next) => {
-	console.log('\n');
-	console.log('---------------------------------');
-	console.log(`${req.method} ${req.url} - ${new Date().toISOString()}`);
-	next();
-	console.log('---------------------------------');
-	console.log('\n');
-};
-
 app.use(logger);
 
 // router
@@ -31,6 +26,16 @@ app.use('/api/v1/auth', auth);
 app.use('/api/v1/profiles', profiles);
 app.use('/api/v1/settings', settings);
 // app.use('/api/v1/dashboard', dashboard);
+
+app.use('*', (req, res, next) => {
+	const err = new Error(`Resource not found at ${req.originalUrl}`);
+	err.status = 404;
+	err.errorType = 'notFound';
+	next(err);
+});
+
+// error handler
+app.use(errorHandler);
 
 app.listen(PORT, () => {
 	console.log(
