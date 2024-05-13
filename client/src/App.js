@@ -18,9 +18,9 @@ function App() {
 			});
 	}, []);
 	return (
-		<div>
+		<div className='bg-slate-500'>
 			<h1>Welcome to Dashboard MVP</h1>
-			<h2>Users:</h2>
+			<h2 className=''>Users:</h2>
 			<ul>{users}</ul>
 		</div>
 	);
