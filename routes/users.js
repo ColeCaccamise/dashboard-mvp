@@ -1,15 +1,22 @@
-const express = require('express');
+import express from 'express';
 const router = express.Router();
 
-const users = [
-	{ id: 1, name: 'Cole Caccamise' },
-	{ id: 2, name: 'Steven Bartlett' },
-	{ id: 3, name: 'Brad Traversy' },
-	{ id: 4, name: 'Elon Musk' },
-];
+// controller methods
+import {
+	getUsers,
+	getUser,
+	createUser,
+	updateUser,
+	deleteUser,
+	methodNotAllowed,
+} from '../controllers/usersController.js';
 
-router.get('/', (req, res) => {
-	res.json(users);
-});
+router.use(express.json()); // not including this resulted in an undefined req.body
 
-module.exports = router;
+router.route('/').get(getUsers).post(createUser);
+
+router.route('/:id').get(getUser).put(updateUser).delete(deleteUser);
+
+router.all('*', methodNotAllowed);
+
+export default router;
