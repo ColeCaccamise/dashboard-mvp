@@ -1,5 +1,6 @@
 import express from 'express';
 import dotenv from 'dotenv';
+import cors from 'cors';
 
 // import middleware
 import logger from './middleware/logger.js';
@@ -13,6 +14,8 @@ import settings from './routes/settings.js';
 // import dashboard from './routes/dashboard.js';
 
 const app = express();
+
+app.use(cors({ origin: true, credentials: true }));
 
 dotenv.config({ path: './config/config.env' });
 

@@ -2,14 +2,16 @@ import React from 'react';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faGoogle } from '@fortawesome/free-brands-svg-icons';
 
-function OAuthButton() {
+function OAuthButton({ mode = 'register' }) {
+	const modeText = mode === 'register' ? 'Register' : 'Login';
+
 	return (
-		<div className='cursor-pointer bg-[#575BC7] text-[#FEFEFF] py-4 flex justify-center items-center font-light text-base rounded-md transition-opacity duration-300 hover:opacity-80'>
+		<div className='cursor-wait bg-[#575BC7] text-[#FEFEFF] py-4 flex justify-center items-center font-light text-base rounded-md transition-opacity duration-300 hover:opacity-80'>
 			<div className='flex gap-4'>
 				<span>
 					<FontAwesomeIcon icon={faGoogle} />
 				</span>
-				<span>Sign up with Google (coming soon)</span>
+				<span>{modeText} with Google (coming soon)</span>
 			</div>
 		</div>
 	);

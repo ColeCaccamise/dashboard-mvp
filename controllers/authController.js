@@ -2,6 +2,7 @@ import bcrypt from 'bcrypt';
 import colors from 'colors';
 
 import Credential from '../model/Credential.js';
+import User from '../model/User.js';
 
 import { createUser } from '../services/UserService.js';
 
@@ -71,7 +72,11 @@ export const register = async (req, res, next) => {
 					hashedPassword: hash,
 					role: 'user',
 				});
-
+				res.cookie('authToken', token, {
+					httpOnly: true,
+					secure: true,
+					maxAge: 604800000, // cookie validity in milliseconds (7d)
+				});
 				res.json({ message: 'User created successfully.', token, credential });
 			} catch (error) {
 				console.error('Error creating user: ', error);
@@ -90,7 +95,8 @@ export const login = async (req, res) => {
 	// get user from database with username or email
 	const user = await Credential.findOne({ username: username }).exec();
 
-	const hash = user.hashedPassword;
+	console.log(user);
+	const hash = user?.hashedPassword;
 
 	bcrypt.compare(password, hash, async function (err, result) {
 		if (err) {
@@ -105,7 +111,13 @@ export const login = async (req, res) => {
 			user.lastLogin = Date.now();
 			user.save();
 
-			res.json({ message: 'User logged in successfully.', token });
+			const userData = await User.findOne({ _id: user.userId }).exec();
+
+			res.json({
+				message: 'User logged in successfully.',
+				user: userData,
+				token,
+			});
 		} else {
 			res.status(401).json({ error: 'Incorrect password.' });
 		}
