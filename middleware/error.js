@@ -7,8 +7,6 @@ const errorHandler = (err, req, res, next) => {
 	const requiredFields = err.requiredFields;
 	const optionalFields = err.optionalFields;
 
-	console.error(`[${status}] ${err.message}`['red']);
-
 	res.status(status).json({
 		error: message,
 		errorType,

@@ -7,12 +7,7 @@ export const getCredentialByUserId = async (userId) => {
 	return user;
 };
 
-export const createUserWithCredentials = async (
-	user,
-	username,
-	email,
-	password
-) => {
+export const createCredentials = async (user, username, email, password) => {
 	const saltRounds = 10;
 
 	const data = await new Promise((resolve, reject) => {
@@ -24,7 +19,6 @@ export const createUserWithCredentials = async (
 				reject(error);
 			} else {
 				try {
-					console.log('trying');
 					const credential = await Credential.create({
 						userId: user._id,
 						username: username,

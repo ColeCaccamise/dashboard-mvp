@@ -12,7 +12,7 @@ import User from '../model/User.js';
 
 import { createUser } from '../services/UserService.js';
 import { generateToken } from '../services/AuthService.js';
-import { createUserWithCredentials } from '../services/CredentialService.js';
+import { createCredentials } from '../services/CredentialService.js';
 
 const userCredentials = [
 	{
@@ -85,11 +85,34 @@ export const register = async (req, res, next) => {
 	}
 
 	// TODO: validate username/email doesn't already exist
+	const existingEmail = await Credential.findOne({
+		email: email,
+	}).exec();
+
+	const existingUsername = await Credential.findOne({
+		username: username,
+	}).exec();
+
+	if (existingEmail && existingUsername) {
+		const error = new Error(
+			'A user already exists with that email and username.'
+		);
+		error.status = 400;
+		return next(error);
+	} else if (existingEmail) {
+		const error = new Error('A user already exists with that email.');
+		error.status = 400;
+		return next(error);
+	} else if (existingUsername) {
+		const error = new Error('Username is already taken.');
+		error.status = 400;
+		return next(error);
+	}
 
 	try {
 		const oldUser = await createUser(req.body);
 
-		const { user, credential } = await createUserWithCredentials(
+		const { user, credential } = await createCredentials(
 			oldUser,
 			username,
 			email,
@@ -104,7 +127,11 @@ export const register = async (req, res, next) => {
 			maxAge: 604800000, // cookie validity in milliseconds (7d)
 		});
 
-		res.json({ message: 'User created successfully.', token, credential });
+		console.log(
+			`user @${credential.username} (${credential.email}) created`.green.bold
+		);
+
+		res.json({ message: 'User successfully created.', token, credential });
 	} catch (error) {
 		next(error);
 	}
@@ -112,45 +139,53 @@ export const register = async (req, res, next) => {
 
 // @desc    login a user
 // @route   POST /api/v1/auth/login
-export const login = async (req, res) => {
+export const login = async (req, res, next) => {
 	const { username, password, email } = req.body;
 
-	// get user from database with username or email
-	const credential = await Credential.findOne({ username: username }).exec();
+	try {
+		// get user from database with username or email
+		const credential = await Credential.findOne({ username: username }).exec();
+		console.log('cred: ', credential);
+		const hash = credential?.hashedPassword;
 
-	console.log('cred: ', credential);
-	const hash = credential?.hashedPassword;
+		bcrypt.compare(password, hash, async function (err, result) {
+			if (err) {
+				res.status(500).json({ error: 'Failed to compare passwords.' });
+				return;
+			}
+			if (result) {
+				// create JWT
+				const token = generateToken(credential, 'credential');
 
-	bcrypt.compare(password, hash, async function (err, result) {
-		if (err) {
-			res.status(500).json({ error: 'Failed to compare passwords.' });
-			return;
-		}
-		if (result) {
-			// create JWT
-			const token = generateToken(credential, 'credential');
+				// update user's last login
+				credential.lastLogin = Date.now();
+				credential.save();
 
-			// update user's last login
-			credential.lastLogin = Date.now();
-			credential.save();
+				const userData = await User.findOne({ _id: credential.userId }).exec();
 
-			const userData = await User.findOne({ _id: credential.userId }).exec();
+				res.cookie('authToken', token, {
+					httpOnly: true,
+					secure: true,
+					maxAge: 604800000, // cookie validity in milliseconds (7d)
+				});
 
-			res.cookie('authToken', token, {
-				httpOnly: true,
-				secure: true,
-				maxAge: 604800000, // cookie validity in milliseconds (7d)
-			});
+				res.json({
+					message: 'User logged in successfully.',
+					user: userData,
+					token,
+				});
+			} else {
+				// TODO log excessive failed login attempts - rate limit ip 5 per 30mins - lock account after 5 for 30 mins
 
-			res.json({
-				message: 'User logged in successfully.',
-				user: userData,
-				token,
-			});
-		} else {
-			res.status(401).json({ error: 'Incorrect password.' });
-		}
-	});
+				const error = new Error('Incorrect username or password.');
+				return next(error);
+			}
+		});
+	} catch (err) {
+		const error = new Error('Account not found.');
+		error.status = 404;
+		next(error);
+	}
 };
 
 // @desc    logout a user
