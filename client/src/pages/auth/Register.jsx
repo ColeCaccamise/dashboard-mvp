@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import Input from '../../components/form/Input.jsx';
 import SubmitButton from '../../components/form/SubmitButton.jsx';
@@ -6,18 +6,33 @@ import OAuthButton from '../../components/form/OAuthButton.jsx';
 import Divider from '../../components/form/Divider.jsx';
 import { useState } from 'react';
 import axios from 'axios';
+import { toast as toastify } from 'react-toastify';
+import { set } from 'mongoose';
 
 function Register() {
-	const [usernameError, setUsernameError] = useState(false);
+	const [nameError, setNameError] = useState(false);
 	const [emailError, setEmailError] = useState(false);
 	const [passwordError, setPasswordError] = useState(false);
 
 	const [name, setName] = useState('');
-	const [username, setUsername] = useState('');
 	const [email, setEmail] = useState('');
 	const [password, setPassword] = useState('');
 
 	const navigate = useNavigate();
+
+	const toast = (type, message) => {
+		if (type) {
+			toastify[type](message, {});
+		} else {
+			toastify(message, {});
+		}
+	};
+
+	const resetErrors = () => {
+		setEmailError(false);
+		setPasswordError(false);
+		setNameError(false);
+	};
 
 	const submitForm = async (e) => {
 		e.preventDefault();
@@ -25,15 +40,30 @@ function Register() {
 		const registeredUser = await axios
 			.post('/api/v1/auth/register', {
 				name,
-				username,
+
 				email,
 				password,
 			})
 			.then((res) => {
-				console.log(res);
+				toast('success', 'Account created successfully!');
 				navigate('/dashboard');
 			})
 			.catch((err) => {
+				resetErrors();
+				toast('error', err.response.data.error);
+
+				if (err.response.data.missingFields) {
+					err.response.data.missingFields.forEach((field) => {
+						if (field === 'email') {
+							setEmailError(true);
+						} else if (field === 'password') {
+							setPasswordError(true);
+						} else if (field === 'name') {
+							setNameError(true);
+						}
+					});
+				}
+
 				return err.response.data;
 			});
 
@@ -50,29 +80,32 @@ function Register() {
 					<Input
 						type='text'
 						placeholder='Name'
-						error={usernameError}
-						onChange={(e) => setName(e.target.value)}
+						error={nameError}
+						onChange={(e) => {
+							setName(e.target.value);
+							setNameError(false);
+						}}
 						value={name}
-					/>
-					<Input
-						type='text'
-						placeholder='Username'
-						error={usernameError}
-						onChange={(e) => setUsername(e.target.value)}
-						value={username}
+						autoFocus={true}
 					/>
 					<Input
 						type='email'
 						placeholder='Email'
 						error={emailError}
-						onChange={(e) => setEmail(e.target.value)}
+						onChange={(e) => {
+							setEmail(e.target.value);
+							setEmailError(false);
+						}}
 						value={email}
 					/>
 					<Input
 						type='password'
 						placeholder='Password'
 						error={passwordError}
-						onChange={(e) => setPassword(e.target.value)}
+						onChange={(e) => {
+							setPassword(e.target.value);
+							setPasswordError(false);
+						}}
 						value={password}
 					/>
 				</div>

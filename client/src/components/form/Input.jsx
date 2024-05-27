@@ -1,14 +1,30 @@
 import React from 'react';
 
-function Input({ type = 'text', placeholder = '', error = false, onChange }) {
+function Input({
+	type = 'text',
+	placeholder = '',
+	error = false,
+	onChange,
+	autoFocus = false,
+	onKeyUp,
+	className,
+	value,
+}) {
 	return (
 		<input
-			className={`w-full p-2 rounded-sm bg-[#0F1011] border-2 text-[#343537] ${
-				error ? 'border-[#a53636]' : 'border-[#1E2025]'
-			}`}
+			className={
+				className
+					? className
+					: `w-full p-2 rounded-sm bg-[#09090a] border-2 text-white ${
+							error ? 'border-[#a53636]' : 'border-[#1E2025]'
+					  } focus:border-[#2b2d61] focus:outline-none transition duration-150 ease-in-out`
+			}
 			onChange={onChange}
+			onKeyUp={onKeyUp}
 			type={type}
 			placeholder={placeholder}
+			autoFocus={autoFocus}
+			value={value}
 		/>
 	);
 }

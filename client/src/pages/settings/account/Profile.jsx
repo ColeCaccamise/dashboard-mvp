@@ -2,56 +2,68 @@ import React, { useEffect, useState } from 'react';
 import { useAuthContext } from '../../../context/AuthContext';
 import ApplicationShell from '../../../components/ApplicationShell';
 import axios from 'axios';
+import { toast as toastify } from 'react-toastify';
+import Input from '../../../components/form/Input';
+import { set } from 'mongoose';
 
 function Profile() {
 	const { user, setUser } = useAuthContext();
 
 	const [email, setEmail] = useState('');
 	const [fullName, setFullName] = useState('');
-	const [username, setUsername] = useState('');
 
-	const handleUpdate = async (field, value) => {
+	const [isSubmitting, setIsSubmitting] = useState(false);
+	const [lastSubmit, setLastSubmit] = useState(null);
+
+	const toast = (type, message) => {
+		if (type) {
+			toastify[type](message, {});
+		} else {
+			toastify(message, {});
+		}
+	};
+
+	const saveChanges = async (e) => {
+		e.preventDefault();
+
+		if (isSubmitting) return;
+		if (lastSubmit && Date.now() - lastSubmit < 2000) return;
+
+		setIsSubmitting(true);
+		setLastSubmit(Date.now());
+
+		// validate missing fields
+		if (!email && !fullName) {
+			toast('error', 'Email and Full Name cannot be empty.');
+			return;
+		} else if (!email) {
+			toast('error', 'Email cannot be empty.');
+			return;
+		} else if (!fullName) {
+			toast('error', 'Full Name cannot be empty.');
+		}
+
 		const group = 'account';
 		const page = 'profile';
 		const body = {
 			profile: {
-				[field]: value,
+				email,
+				fullName,
 			},
 		};
 
 		await axios
 			.put(`/api/v1/settings/${user._id}/${group}/${page}`, body)
 			.then((res) => {
+				toast('success', 'Profile updated successfully.');
 				console.log(res.data);
+				setIsSubmitting(false);
 			})
 			.catch((err) => {
+				toast('error', err.response.data.error);
 				console.log('error: ', err);
+				setIsSubmitting(false);
 			});
-	};
-
-	const saveChanges = (field, e) => {
-		e.preventDefault();
-
-		if (e.key !== 'Enter') return;
-
-		console.log('in here');
-
-		switch (field) {
-			case 'email':
-				console.log('saving email ', e.target.value);
-				handleUpdate('email', email);
-				break;
-			case 'fullName':
-				console.log('saving full name ', e.target.value);
-				handleUpdate('fullName', fullName);
-				break;
-			case 'username':
-				console.log('saving username ', e.target.value);
-				handleUpdate('username', username);
-				break;
-			default:
-				break;
-		}
 	};
 
 	useEffect(() => {
@@ -64,18 +76,13 @@ function Profile() {
 					const profile = res.data.profile;
 					setEmail(profile.email);
 					setFullName(profile.fullName);
-					setUsername(profile.username);
-					console.log(res.data);
 				})
 				.catch((err) => {
 					console.error('YOO: ', err.response.data);
 				});
-			console.log('user: ', user);
 		};
 
 		getSettings();
-
-		console.log('user: ', user);
 	}, [user]);
 
 	return (
@@ -89,51 +96,39 @@ function Profile() {
 				</p>
 			</div>
 			<div className='border-solid border-2 border-neutral-500 p-4 rounded-sm flex flex-col gap-6'>
-				<form onSubmit={(e) => saveChanges(e)}>
+				<form onSubmit={(e) => saveChanges(e)} disabled={isSubmitting}>
 					<div className='w-full flex justify-between items-center'>
 						<span className='text-white'>Email</span>
 						<div className='border-solid border-2 border-neutral-500 p-2 rounded-sm'>
-							<input
+							<Input
 								type='email'
 								value={email}
 								onChange={(e) => {
 									setEmail(e.target.value);
 								}}
-								onKeyUp={(e) => saveChanges('email', e)}
 								className='bg-transparent text-white '
 							/>
 						</div>
 					</div>
-					<div className='border-t-2 border-neutral-500'></div>
+					<div className='border-t-2 border-neutral-500 my-4'></div>
 					<div className='w-full flex justify-between items-center'>
 						<span class='text-white'>Full Name</span>
 						<div className='border-solid border-2 border-neutral-500 p-2 rounded-sm'>
-							<input
+							<Input
 								type='text'
 								value={fullName}
 								onChange={(e) => {
 									setFullName(e.target.value);
 								}}
-								onKeyUp={(e) => saveChanges('fullName', e)}
-								className='bg-transparent text-white '
+								className='bg-transparent text-white'
 							/>
 						</div>
 					</div>
-					<div className='border-t-2 border-neutral-500'></div>
-					<div className='w-full flex justify-between items-center'>
-						<span class='text-white'>Username</span>
-						<div className='border-solid border-2 border-neutral-500 p-2 rounded-sm'>
-							<input
-								type='text'
-								value={username}
-								onChange={(e) => {
-									setUsername(e.target.value);
-								}}
-								onKeyUp={(e) => saveChanges('username', e)}
-								className='bg-transparent text-white '
-							/>
-						</div>
-					</div>
+					<input
+						type='submit'
+						style={{ display: 'none' }}
+						disabled={isSubmitting}
+					/>
 				</form>
 			</div>
 		</ApplicationShell>
