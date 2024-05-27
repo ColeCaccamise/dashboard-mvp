@@ -3,7 +3,7 @@ import { validateBody, validateId } from '../middleware/validation.js';
 import { getUser } from '../services/UserService.js';
 import { getCredentialByUserId } from '../services/CredentialService.js';
 import {
-	createSettingsService,
+	createSettingsForUser,
 	getSettingsByUserId,
 } from '../services/SettingsService.js';
 import Settings from '../model/Settings.js';
@@ -163,30 +163,9 @@ export const getSettingByGroupAndPage = async (req, res, next) => {
 export const createSettings = async (req, res, next) => {
 	const { userId } = req.body;
 
-	const user = await getUser(userId);
-	console.log(user);
+	const settings = createSettingsForUser(userId);
 
-	const settings = {
-		userId,
-	};
-
-	// userId: 1,
-	// 			fullName: 'Cole Caccamise',
-	// 			username: 'colecaccamise',
-	// 			email: 'cole@caccamedia.com'
-
-	const credentials = await getCredentialByUserId(userId);
-
-	settings['account'] = {};
-	settings['account']['profile'] = {
-		fullName: user.name,
-		username: credentials.username,
-		email: credentials.email,
-	};
-
-	const settingsCreated = await createSettingsService(settings);
-
-	res.status(201).json(settingsCreated);
+	res.status(201).json(settings);
 };
 
 // @desc    Update user settings by UserID, Group ID, and Page ID

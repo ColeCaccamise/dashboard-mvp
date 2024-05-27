@@ -14,7 +14,22 @@ export const getSettings = async (id) => {
 	return settings;
 };
 
-export const createSettingsService = async (body) => {
+export const createSettingsForUser = async (userId) => {
+	const user = await getUser(userId);
+
+	const body = {
+		userId,
+	};
+
+	const credentials = await getCredentialByUserId(userId);
+
+	body['account'] = {};
+	body['account']['profile'] = {
+		fullName: user.name,
+		username: credentials.username,
+		email: credentials.email,
+	};
+
 	const settings = await Settings.create(body);
 
 	return settings;

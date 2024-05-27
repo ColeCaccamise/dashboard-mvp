@@ -11,8 +11,8 @@ import Credential from '../model/Credential.js';
 import User from '../model/User.js';
 
 import { createUser } from '../services/UserService.js';
-
 import { generateToken } from '../services/AuthService.js';
+import { createUserWithCredentials } from '../services/CredentialService.js';
 
 const userCredentials = [
 	{
@@ -55,8 +55,9 @@ export const verify = async (req, res, next) => {
 		console.log(user);
 		res.json({ user });
 	} catch (error) {
-		console.log('error: ', error);
-		res.json({ error: 'Invalid token.' });
+		error.status = 401;
+		error.message = 'Invalid token.';
+		next(error);
 	}
 };
 
@@ -85,41 +86,28 @@ export const register = async (req, res, next) => {
 
 	// TODO: validate username/email doesn't already exist
 
-	// hash password
-	const saltRounds = 10;
-	bcrypt.hash(password, saltRounds, async function (err, hash) {
-		if (err) {
-			res.status(500).json({ error: 'Failed to hash password.' });
-		} else {
-			try {
-				const user = await createUser(req.body);
+	try {
+		const oldUser = await createUser(req.body);
 
-				const token = generateToken(user);
+		const { user, credential } = await createUserWithCredentials(
+			oldUser,
+			username,
+			email,
+			password
+		);
 
-				const credential = await Credential.create({
-					userId: user._id,
-					username: username,
-					email: email,
-					hashedPassword: hash,
-					role: 'user',
-				});
+		const token = generateToken(user);
 
-				user.credentialId = credential._id;
-				user.save();
+		res.cookie('authToken', token, {
+			httpOnly: true,
+			secure: true,
+			maxAge: 604800000, // cookie validity in milliseconds (7d)
+		});
 
-				res.cookie('authToken', token, {
-					httpOnly: true,
-					secure: true,
-					maxAge: 604800000, // cookie validity in milliseconds (7d)
-				});
-				res.json({ message: 'User created successfully.', token, credential });
-			} catch (error) {
-				console.error('Error creating user: ', error);
-				res.status(500).json({ error: 'Failed to create user.' });
-				return;
-			}
-		}
-	});
+		res.json({ message: 'User created successfully.', token, credential });
+	} catch (error) {
+		next(error);
+	}
 };
 
 // @desc    login a user
