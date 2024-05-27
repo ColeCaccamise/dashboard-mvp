@@ -45,6 +45,8 @@ export const createUser = async (req, res, next) => {
 		name,
 	});
 
+	// TODO create credentials and settings for user automatically
+
 	res.json(user);
 };
 

@@ -3,6 +3,7 @@ const { Schema, model } = mongoose;
 
 const userSchema = new Schema({
 	name: { type: String, required: true },
+	credentialId: Schema.Types.ObjectId,
 	createdAt: {
 		type: Date,
 		default: () => Date.now(),

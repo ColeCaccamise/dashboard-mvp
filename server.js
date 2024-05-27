@@ -5,6 +5,7 @@ import cors from 'cors';
 // import middleware
 import logger from './middleware/logger.js';
 import errorHandler from './middleware/error.js';
+import cookieParser from 'cookie-parser';
 
 // Import routes
 import users from './routes/users.js';
@@ -16,6 +17,7 @@ import settings from './routes/settings.js';
 const app = express();
 
 app.use(cors({ origin: true, credentials: true }));
+app.use(cookieParser());
 
 dotenv.config({ path: './config/config.env' });
 

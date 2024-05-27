@@ -9,3 +9,9 @@ export const createUser = async (body) => {
 
 	return user;
 };
+
+export const getUser = async (userId) => {
+	const user = await User.findOne({ _id: userId }).exec();
+
+	return user;
+};

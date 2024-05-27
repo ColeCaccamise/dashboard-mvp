@@ -1,5 +1,11 @@
 import bcrypt from 'bcrypt';
 import colors from 'colors';
+import jwt from 'jsonwebtoken';
+import dotenv from 'dotenv';
+
+dotenv.config({ path: '../config/config.env' });
+
+const JWT_SECRET = process.env.JWT_SECRET;
 
 import Credential from '../model/Credential.js';
 import User from '../model/User.js';
@@ -28,6 +34,31 @@ const userCredentials = [
 		isSignedIn: false,
 	},
 ];
+
+// @desc    verify that JWT is valid, return user data
+// @route   GET /api/v1/auth/verify
+export const verify = async (req, res, next) => {
+	const token = req.cookies.authToken;
+
+	console.log();
+
+	if (!token) {
+		res.status(401).json({ error: 'No token provided.' });
+		return;
+	}
+
+	let decoded;
+
+	try {
+		decoded = jwt.verify(token, JWT_SECRET);
+		const user = await User.findOne({ _id: decoded.userId }).exec();
+		console.log(user);
+		res.json({ user });
+	} catch (error) {
+		console.log('error: ', error);
+		res.json({ error: 'Invalid token.' });
+	}
+};
 
 // @desc    register a new user
 // @route   POST /api/v1/auth/register
@@ -72,6 +103,10 @@ export const register = async (req, res, next) => {
 					hashedPassword: hash,
 					role: 'user',
 				});
+
+				user.credentialId = credential._id;
+				user.save();
+
 				res.cookie('authToken', token, {
 					httpOnly: true,
 					secure: true,
@@ -93,10 +128,10 @@ export const login = async (req, res) => {
 	const { username, password, email } = req.body;
 
 	// get user from database with username or email
-	const user = await Credential.findOne({ username: username }).exec();
+	const credential = await Credential.findOne({ username: username }).exec();
 
-	console.log(user);
-	const hash = user?.hashedPassword;
+	console.log('cred: ', credential);
+	const hash = credential?.hashedPassword;
 
 	bcrypt.compare(password, hash, async function (err, result) {
 		if (err) {
@@ -105,13 +140,19 @@ export const login = async (req, res) => {
 		}
 		if (result) {
 			// create JWT
-			const token = generateToken(user);
+			const token = generateToken(credential, 'credential');
 
 			// update user's last login
-			user.lastLogin = Date.now();
-			user.save();
+			credential.lastLogin = Date.now();
+			credential.save();
 
-			const userData = await User.findOne({ _id: user.userId }).exec();
+			const userData = await User.findOne({ _id: credential.userId }).exec();
+
+			res.cookie('authToken', token, {
+				httpOnly: true,
+				secure: true,
+				maxAge: 604800000, // cookie validity in milliseconds (7d)
+			});
 
 			res.json({
 				message: 'User logged in successfully.',
@@ -127,33 +168,29 @@ export const login = async (req, res) => {
 // @desc    logout a user
 // @route   POST /api/v1/auth/logout
 export const logout = (req, res) => {
-	const { username, email } = req.body;
-	if (!username && !email) {
-		res.status(400).json({ error: 'Username or email required.' });
+	const token = req.cookies.authToken;
+
+	if (!token) {
+		res.status(401).json({ error: 'No token provided.' });
 		return;
 	}
 
-	let user;
+	const decoded = jwt.verify(token, JWT_SECRET);
 
-	if (email) {
-		const emailExists = userCredentials.some((user) => user.email == email);
-		if (!emailExists) {
-			res.status(400).json({ error: 'No user found with that email.' });
-			return;
-		}
-		user = userCredentials.find((user) => user.email == email);
-	} else {
-		const usernameExists = userCredentials.some(
-			(user) => user.username == username
-		);
-		if (!usernameExists) {
-			res.status(400).json({ error: 'No user found with that username.' });
-			return;
-		}
-		user = userCredentials.find((user) => user.username == username);
+	if (!decoded) {
+		res.status(401).json({ error: 'Invalid token.' });
+		return;
 	}
 
-	user.isSignedIn = false;
+	console.log('logging out decoded: ', decoded);
+
+	const userId = decoded.userId;
+	const credentialId = decoded.credentialId;
+
+	const user = User.findOne({ _id: userId }).exec();
+	const credential = Credential.findOne({ _id: credentialId }).exec();
+
+	res.clearCookie('authToken');
 	res.json({ message: 'User logged out successfully.', user });
 };
 

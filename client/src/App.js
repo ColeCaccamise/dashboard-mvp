@@ -1,5 +1,5 @@
 import axios from 'axios';
-import React, { useEffect, useState } from 'react';
+import React, { Profiler, useEffect, useState } from 'react';
 import {
 	BrowserRouter as Router,
 	Routes,
@@ -9,12 +9,14 @@ import {
 import Register from './pages/auth/Register';
 import Login from './pages/auth/Login';
 import Dashboard from './pages/Dashboard';
+import Support from './pages/Support';
+import Profile from './pages/settings/account/Profile.jsx';
 import { useAuthContext } from './context/AuthContext';
-
-// const user = { user: 'Cole' };
 
 function App() {
 	const { user, setUser } = useAuthContext();
+
+	console.log(user);
 
 	return (
 		<React.StrictMode>
@@ -28,7 +30,6 @@ function App() {
 						path='/login'
 						element={!user ? <Login /> : <Navigate to='/dashboard' />}
 					/>
-
 					<Route
 						path='/'
 						element={
@@ -39,6 +40,16 @@ function App() {
 						path='/dashboard'
 						element={user ? <Dashboard /> : <Navigate to='/login' />}
 					/>
+					<Route
+						path='/support'
+						element={user ? <Support /> : <Navigate to='/login' />}
+					/>
+					<Route
+						path='/settings/account/profile'
+						element={user ? <Profile /> : <Navigate to='/login' />}
+					/>
+					console.log('user: ', user);
+					<Route path='*' element={<Navigate to='/login' />} />
 				</Routes>
 			</Router>
 		</React.StrictMode>

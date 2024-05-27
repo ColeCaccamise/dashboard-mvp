@@ -8,19 +8,20 @@ import {
 	getSettings,
 	getSetting,
 	createSettings,
-	updateSettings,
 	deleteSettings,
 	methodNotAllowed,
+	getSettingByGroupAndPage,
+	updateSettingsByGroupAndPage,
 } from '../controllers/settingsController.js';
 
-router.route('/').get(getSettings);
+router.route('/').get(getSettings).post(createSettings);
+
+router.route('/:id').get(getSetting).delete(deleteSettings);
 
 router
-	.route('/:id')
-	.get(getSetting)
-	.post(createSettings)
-	.put(updateSettings)
-	.delete(deleteSettings);
+	.route('/:id/:group/:page')
+	.get(getSettingByGroupAndPage)
+	.put(updateSettingsByGroupAndPage);
 
 router.all('*', methodNotAllowed);
 
