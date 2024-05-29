@@ -20,7 +20,6 @@ function AuthContextProvider({ children }) {
 	const [user, setUser] = useState(null);
 
 	useEffect(() => {
-		console.log('checking user');
 		checkUser()
 			.then((data) => {
 				console.log('data?: ', data);

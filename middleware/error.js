@@ -6,6 +6,7 @@ const errorHandler = (err, req, res, next) => {
 	const status = err.status || 500;
 	const requiredFields = err.requiredFields;
 	const optionalFields = err.optionalFields;
+	const serverMessage = err.serverMessage;
 
 	res.status(status).json({
 		error: message,
@@ -13,6 +14,12 @@ const errorHandler = (err, req, res, next) => {
 		requiredFields,
 		optionalFields,
 	});
+
+	if (serverMessage) {
+		console.log('\n');
+		console.log(`${err.serverMessage || ''}`.red.bold);
+		console.log('\n');
+	}
 
 	next(err);
 };

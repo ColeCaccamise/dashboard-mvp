@@ -13,6 +13,7 @@ import User from '../model/User.js';
 import { createUser } from '../services/UserService.js';
 import { generateToken } from '../services/AuthService.js';
 import { createCredentials } from '../services/CredentialService.js';
+import { createSettingsForUser } from '../services/SettingsService.js';
 
 const userCredentials = [
 	{
@@ -40,8 +41,6 @@ const userCredentials = [
 export const verify = async (req, res, next) => {
 	const token = req.cookies.authToken;
 
-	console.log();
-
 	if (!token) {
 		res.status(401).json({ error: 'No token provided.' });
 		return;
@@ -64,10 +63,10 @@ export const verify = async (req, res, next) => {
 // @desc    register a new user
 // @route   POST /api/v1/auth/register
 export const register = async (req, res, next) => {
-	const { username, password, email } = req.body;
+	const { email, password } = req.body;
 
 	const missingFields = [];
-	const requiredFields = ['name', 'username', 'password', 'email'];
+	const requiredFields = ['name', 'password', 'email'];
 
 	for (let field of requiredFields) {
 		if (!req.body[field]) {
@@ -84,27 +83,13 @@ export const register = async (req, res, next) => {
 		return;
 	}
 
-	// TODO: validate username/email doesn't already exist
+	// validate email doesn't already exist
 	const existingEmail = await Credential.findOne({
 		email: email,
 	}).exec();
 
-	const existingUsername = await Credential.findOne({
-		username: username,
-	}).exec();
-
-	if (existingEmail && existingUsername) {
-		const error = new Error(
-			'A user already exists with that email and username.'
-		);
-		error.status = 400;
-		return next(error);
-	} else if (existingEmail) {
+	if (existingEmail) {
 		const error = new Error('A user already exists with that email.');
-		error.status = 400;
-		return next(error);
-	} else if (existingUsername) {
-		const error = new Error('Username is already taken.');
 		error.status = 400;
 		return next(error);
 	}
@@ -114,7 +99,6 @@ export const register = async (req, res, next) => {
 
 		const { user, credential } = await createCredentials(
 			oldUser,
-			username,
 			email,
 			password
 		);
@@ -127,9 +111,9 @@ export const register = async (req, res, next) => {
 			maxAge: 604800000, // cookie validity in milliseconds (7d)
 		});
 
-		console.log(
-			`user @${credential.username} (${credential.email}) created`.green.bold
-		);
+		console.log(`user (${credential.email}) created`.green.bold);
+
+		createSettingsForUser(user._id);
 
 		res.json({ message: 'User successfully created.', token, credential });
 	} catch (error) {
@@ -140,12 +124,11 @@ export const register = async (req, res, next) => {
 // @desc    login a user
 // @route   POST /api/v1/auth/login
 export const login = async (req, res, next) => {
-	const { username, password, email } = req.body;
+	const { email, password } = req.body;
 
 	try {
 		// get user from database with username or email
-		const credential = await Credential.findOne({ username: username }).exec();
-		console.log('cred: ', credential);
+		const credential = await Credential.findOne({ email: email }).exec();
 		const hash = credential?.hashedPassword;
 
 		bcrypt.compare(password, hash, async function (err, result) {

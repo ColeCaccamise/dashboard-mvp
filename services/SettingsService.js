@@ -1,4 +1,6 @@
 import Settings from '../model/Settings.js';
+import { getUser } from './UserService.js';
+import { getCredentialByUserId } from './CredentialService.js';
 
 export const getSettingsByUserId = async (userId) => {
 	const settings = await Settings.findOne({ userId }).exec();
@@ -31,6 +33,8 @@ export const createSettingsForUser = async (userId) => {
 	};
 
 	const settings = await Settings.create(body);
+
+	console.log('settings created: ', settings);
 
 	return settings;
 };

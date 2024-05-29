@@ -7,6 +7,7 @@ import {
 	getSettingsByUserId,
 } from '../services/SettingsService.js';
 import Settings from '../model/Settings.js';
+import User from '../model/User.js';
 
 // TODO:
 // 1. build out settings API to be an object of form
@@ -172,14 +173,14 @@ export const createSettings = async (req, res, next) => {
 // @route   PUT /api/v1/settings/:id/:group/:page
 export const updateSettingsByGroupAndPage = async (req, res, next) => {
 	const { id, group, page } = req.params;
-	const { email, username, fullName } = req.body.profile;
+	const { email, fullName } = req.body.profile;
 
 	const setting = await Settings.findOne({ userId: id });
+	const user = await User.findOne({ _id: id });
 
 	const fields = [];
 
 	if (email) fields.push('email');
-	if (username) fields.push('username');
 	if (fullName) fields.push('fullName');
 
 	const credential = await getCredentialByUserId(id);
@@ -187,25 +188,27 @@ export const updateSettingsByGroupAndPage = async (req, res, next) => {
 	for (let field of fields) {
 		const value = req.body.profile[field];
 		setting[group][page][field] = value;
-		if (field === 'email' || field === 'username') credential[field] = value;
+		if (field === 'email') credential[field] = value;
+	}
+
+	if (email) {
+		const updatedEmail = req.body.profile['email'];
+		credential.email = updatedEmail;
+	}
+
+	if (fullName) {
+		const updatedFullName = req.body.profile['fullName'];
+		user.name = updatedFullName;
 	}
 
 	setting.updatedAt = Date.now();
 	credential.updatedAt = Date.now();
+	user.updatedAt = Date.now();
 
 	await setting.save();
 	await credential.save();
+	await user.save();
 
-	// const updatedSettings = await Settings.findOneAndUpdate(
-	// 	{ userId: id },
-	// 	updated,
-	// 	{
-	// 		new: true,
-	// 		runValidators: true,
-	// 	}
-	// );
-
-	// res.json(updatedSettings);
 	res.json(setting);
 };
 

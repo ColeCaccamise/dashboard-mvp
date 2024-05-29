@@ -12,6 +12,7 @@ import users from './routes/users.js';
 import auth from './routes/auth.js';
 import profiles from './routes/profiles.js';
 import settings from './routes/settings.js';
+import emails from './routes/emails.js';
 // import dashboard from './routes/dashboard.js';
 
 const app = express();
@@ -30,6 +31,7 @@ app.use('/api/v1/users', users);
 app.use('/api/v1/auth', auth);
 app.use('/api/v1/profiles', profiles);
 app.use('/api/v1/settings', settings);
+app.use('/api/v1/emails', emails);
 // app.use('/api/v1/dashboard', dashboard);
 
 app.use('*', (req, res, next) => {
