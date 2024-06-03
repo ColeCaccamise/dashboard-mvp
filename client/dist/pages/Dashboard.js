@@ -32,11 +32,13 @@ function Dashboard() {
     onClick: async () => {
       console.log('starting up...');
       try {
-        await _axios.default.post('/api/v1/emails/confirm').then(res => {
+        await _axios.default.post('/api/v1/emails/confirm', {
+          userId: user._id
+        }).then(res => {
           toast('success', 'Email sent');
           console.log('email sent', res.data);
         }).catch(error => {
-          toast('error', error.response.data.error);
+          toast('error', 'Error sending email');
           console.error('error sending email', error);
         });
       } catch (error) {
