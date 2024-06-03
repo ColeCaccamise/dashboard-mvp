@@ -4,13 +4,13 @@ import ApplicationShell from '../../../components/ApplicationShell';
 import axios from 'axios';
 import { toast as toastify } from 'react-toastify';
 import Input from '../../../components/form/Input';
-import { set } from 'mongoose';
 
 function Profile() {
 	const { user, setUser } = useAuthContext();
 
 	const [email, setEmail] = useState('');
 	const [fullName, setFullName] = useState('');
+	const [image, setImage] = useState('');
 
 	const [isSubmitting, setIsSubmitting] = useState(false);
 	const [lastSubmit, setLastSubmit] = useState(null);
@@ -97,6 +97,20 @@ function Profile() {
 			</div>
 			<div className='border-solid border-2 border-neutral-500 p-4 rounded-sm flex flex-col gap-6'>
 				<form onSubmit={(e) => saveChanges(e)} disabled={isSubmitting}>
+					<div className='w-full flex justify-between items-center'>
+						<span className='text-white'>Profile Picture</span>
+						<div className='border-solid border-2 border-neutral-500 p-2 rounded-sm'>
+							<img alt={`${user.name}`} src={image.filename} />
+							<Input
+								type='file'
+								value={image?.filename}
+								onChange={(e) => {
+									setImage(e.target.files[0]);
+								}}
+								className='bg-transparent text-white '
+							/>
+						</div>
+					</div>
 					<div className='w-full flex justify-between items-center'>
 						<span className='text-white'>Email</span>
 						<div className='border-solid border-2 border-neutral-500 p-2 rounded-sm'>
