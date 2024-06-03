@@ -29,13 +29,13 @@ function Dashboard() {
 						console.log('starting up...');
 						try {
 							await axios
-								.post('/api/v1/emails/confirm')
+								.post('/api/v1/emails/confirm', { userId: user._id })
 								.then((res) => {
 									toast('success', 'Email sent');
 									console.log('email sent', res.data);
 								})
 								.catch((error) => {
-									toast('error', error.response.data.error);
+									toast('error', 'Error sending email');
 									console.error('error sending email', error);
 								});
 						} catch (error) {
