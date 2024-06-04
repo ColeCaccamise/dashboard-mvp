@@ -1,4 +1,5 @@
 import { v2 as cloudinary } from 'cloudinary';
+import streamifier from 'streamifier';
 import dotenv from 'dotenv';
 
 dotenv.config({ path: '../config/config.env' });
@@ -15,14 +16,30 @@ export const configureCloudinary = () => {
 	});
 };
 
-export const uploadImage = async (imagePath, publicId) => {
-	const uploadResult = await cloudinary.uploader
-		.upload(imagePath, {
-			public_id: publicId,
-		})
-		.catch((error) => {
-			console.log(error);
-		});
+const uploadFromBuffer = (publicId, buffer) => {
+	return new Promise((resolve, reject) => {
+		const stream = cloudinary.uploader.upload_stream(
+			{
+				folder: 'profile-images',
+				public_id: publicId,
+			},
+			(error, result) => {
+				if (result) {
+					resolve(result);
+				} else {
+					reject(error);
+				}
+			}
+		);
+
+		streamifier.createReadStream(buffer).pipe(stream);
+	});
+};
+
+export const uploadImage = async (publicId, file) => {
+	const uploadResult = await uploadFromBuffer(publicId, file).catch((error) => {
+		console.log(error);
+	});
 
 	return uploadResult;
 };

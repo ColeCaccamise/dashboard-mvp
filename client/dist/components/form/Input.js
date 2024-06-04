@@ -17,6 +17,18 @@ function Input(_ref) {
     className,
     value
   } = _ref;
+  if (type === 'image') {
+    return /*#__PURE__*/_react.default.createElement("input", {
+      className: className ? className : "w-full p-2 rounded-sm bg-[#09090a] border-2 text-white ".concat(error ? 'border-[#a53636]' : 'border-[#1E2025]', " focus:border-[#2b2d61] focus:outline-none transition duration-150 ease-in-out"),
+      onChange: onChange,
+      onKeyUp: onKeyUp,
+      type: "file",
+      accept: "image/jpeg image/png image/gif image/webp",
+      placeholder: placeholder,
+      autoFocus: autoFocus,
+      value: value
+    });
+  }
   return /*#__PURE__*/_react.default.createElement("input", {
     className: className ? className : "w-full p-2 rounded-sm bg-[#09090a] border-2 text-white ".concat(error ? 'border-[#a53636]' : 'border-[#1E2025]', " focus:border-[#2b2d61] focus:outline-none transition duration-150 ease-in-out"),
     onChange: onChange,

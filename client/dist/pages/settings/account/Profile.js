@@ -10,7 +10,7 @@ var _ApplicationShell = _interopRequireDefault(require("../../../components/Appl
 var _axios = _interopRequireDefault(require("axios"));
 var _reactToastify = require("react-toastify");
 var _Input = _interopRequireDefault(require("../../../components/form/Input"));
-var _mongoose = require("mongoose");
+var _SubmitButton = _interopRequireDefault(require("../../../components/form/SubmitButton"));
 function _interopRequireDefault(e) { return e && e.__esModule ? e : { default: e }; }
 function _getRequireWildcardCache(e) { if ("function" != typeof WeakMap) return null; var r = new WeakMap(), t = new WeakMap(); return (_getRequireWildcardCache = function (e) { return e ? t : r; })(e); }
 function _interopRequireWildcard(e, r) { if (!r && e && e.__esModule) return e; if (null === e || "object" != typeof e && "function" != typeof e) return { default: e }; var t = _getRequireWildcardCache(r); if (t && t.has(e)) return t.get(e); var n = { __proto__: null }, a = Object.defineProperty && Object.getOwnPropertyDescriptor; for (var u in e) if ("default" !== u && {}.hasOwnProperty.call(e, u)) { var i = a ? Object.getOwnPropertyDescriptor(e, u) : null; i && (i.get || i.set) ? Object.defineProperty(n, u, i) : n[u] = e[u]; } return n.default = e, t && t.set(e, n), n; }
@@ -21,6 +21,7 @@ function Profile() {
   } = (0, _AuthContext.useAuthContext)();
   const [email, setEmail] = (0, _react.useState)('');
   const [fullName, setFullName] = (0, _react.useState)('');
+  const [image, setImage] = (0, _react.useState)('');
   const [isSubmitting, setIsSubmitting] = (0, _react.useState)(false);
   const [lastSubmit, setLastSubmit] = (0, _react.useState)(null);
   const toast = (type, message) => {
@@ -30,8 +31,18 @@ function Profile() {
       (0, _reactToastify.toast)(message, {});
     }
   };
+  const uploadImage = async e => {
+    const formData = new FormData();
+    formData.append('image', image);
+    _axios.default.post("/api/v1/settings/".concat(user._id, "/account/profile/photo"), formData, {
+      headers: {
+        'Content-Type': 'multipart/form-data'
+      }
+    });
+  };
   const saveChanges = async e => {
     e.preventDefault();
+    console.log('Image: ', image);
     if (isSubmitting) return;
     if (lastSubmit && Date.now() - lastSubmit < 2000) return;
     setIsSubmitting(true);
@@ -52,7 +63,8 @@ function Profile() {
     const body = {
       profile: {
         email,
-        fullName
+        fullName,
+        image
       }
     };
     await _axios.default.put("/api/v1/settings/".concat(user._id, "/").concat(group, "/").concat(page), body).then(res => {
@@ -96,6 +108,24 @@ function Profile() {
     className: "w-full flex justify-between items-center"
   }, /*#__PURE__*/_react.default.createElement("span", {
     className: "text-white"
+  }, "Profile Picture"), /*#__PURE__*/_react.default.createElement("div", {
+    className: "border-solid border-2 border-neutral-500 p-2 rounded-sm"
+  }, /*#__PURE__*/_react.default.createElement("img", {
+    alt: "".concat(user.name),
+    src: image.filename
+  }), /*#__PURE__*/_react.default.createElement(_Input.default, {
+    type: "file"
+    // ow
+    ,
+    onChange: e => {
+      console.log(e.target.files[0]);
+      setImage(e.target.files[0]);
+    },
+    className: "bg-transparent text-white "
+  }))), /*#__PURE__*/_react.default.createElement("div", {
+    className: "w-full flex justify-between items-center"
+  }, /*#__PURE__*/_react.default.createElement("span", {
+    className: "text-white"
   }, "Email"), /*#__PURE__*/_react.default.createElement("div", {
     className: "border-solid border-2 border-neutral-500 p-2 rounded-sm"
   }, /*#__PURE__*/_react.default.createElement(_Input.default, {
@@ -126,6 +156,8 @@ function Profile() {
       display: 'none'
     },
     disabled: isSubmitting
+  }), /*#__PURE__*/_react.default.createElement(_SubmitButton.default, {
+    text: "Save Changes"
   }))));
 }
 var _default = exports.default = Profile;

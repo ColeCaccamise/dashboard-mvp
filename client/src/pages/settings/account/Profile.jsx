@@ -4,6 +4,8 @@ import ApplicationShell from '../../../components/ApplicationShell';
 import axios from 'axios';
 import { toast as toastify } from 'react-toastify';
 import Input from '../../../components/form/Input';
+import SubmitButton from '../../../components/form/SubmitButton';
+import { set } from 'mongoose';
 
 function Profile() {
 	const { user, setUser } = useAuthContext();
@@ -23,8 +25,29 @@ function Profile() {
 		}
 	};
 
+	const uploadImage = async () => {
+		const formData = new FormData();
+		formData.append('image', image);
+		axios
+			.post(`/api/v1/settings/${user._id}/account/profile/image`, formData, {
+				headers: {
+					'Content-Type': 'multipart/form-data',
+				},
+			})
+			.then((res) => {
+				console.log('Image uploaded: ', res.data.imageUrl);
+				setImage(res.data?.imageUrl);
+				toast('success', 'Image uploaded successfully.');
+			})
+			.catch((err) => {
+				toast('error', err.response.data.error);
+			});
+	};
+
 	const saveChanges = async (e) => {
 		e.preventDefault();
+
+		console.log('Image: ', image);
 
 		if (isSubmitting) return;
 		if (lastSubmit && Date.now() - lastSubmit < 2000) return;
@@ -49,6 +72,7 @@ function Profile() {
 			profile: {
 				email,
 				fullName,
+				image,
 			},
 		};
 
@@ -64,6 +88,8 @@ function Profile() {
 				console.log('error: ', err);
 				setIsSubmitting(false);
 			});
+
+		uploadImage();
 	};
 
 	useEffect(() => {
@@ -82,8 +108,20 @@ function Profile() {
 				});
 		};
 
+		const getImage = async () => {
+			await axios
+				.get(`/api/v1/settings/${user._id}/account/profile/image`)
+				.then((res) => {
+					setImage(res.data);
+				})
+				.catch((err) => {
+					console.log('error: ', err);
+				});
+		};
+
 		getSettings();
-	}, [user]);
+		getImage();
+	}, [user, image]);
 
 	return (
 		<ApplicationShell mode='settings'>
@@ -91,6 +129,7 @@ function Profile() {
 				<h1 className='text-white text-2xl font-bold '>
 					Settings for {user.name}
 				</h1>
+				<h2>{image?.imageUrl}</h2>
 				<p className='text-neutral-400 text-sm'>
 					Manage your Dashboard MVP profile
 				</p>
@@ -100,11 +139,17 @@ function Profile() {
 					<div className='w-full flex justify-between items-center'>
 						<span className='text-white'>Profile Picture</span>
 						<div className='border-solid border-2 border-neutral-500 p-2 rounded-sm'>
-							<img alt={`${user.name}`} src={image.filename} />
+							<img
+								alt={`${user.name}`}
+								src={image.imageUrl}
+								width='50'
+								height='50'
+							/>
 							<Input
 								type='file'
-								value={image?.filename}
+								// ow
 								onChange={(e) => {
+									console.log(e.target.files[0]);
 									setImage(e.target.files[0]);
 								}}
 								className='bg-transparent text-white '
@@ -143,6 +188,7 @@ function Profile() {
 						style={{ display: 'none' }}
 						disabled={isSubmitting}
 					/>
+					<SubmitButton text='Save Changes' />
 				</form>
 			</div>
 		</ApplicationShell>

@@ -6,6 +6,7 @@ import cors from 'cors';
 import logger from './middleware/logger.js';
 import errorHandler from './middleware/error.js';
 import cookieParser from 'cookie-parser';
+import bodyParser from 'body-parser';
 
 // Import routes
 import users from './routes/users.js';
@@ -17,6 +18,8 @@ import emails from './routes/emails.js';
 
 const app = express();
 
+app.use(express.urlencoded());
+app.use(express.json());
 app.use(cors({ origin: true, credentials: true }));
 app.use(cookieParser());
 
