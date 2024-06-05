@@ -27,7 +27,7 @@ function AppSidebar() {
   }, /*#__PURE__*/_react.default.createElement("div", {
     className: "flex items-center gap-4"
   }, /*#__PURE__*/_react.default.createElement("img", {
-    src: "https://images.unsplash.com/photo-1633332755192-727a05c4013d?q=80&w=1480&auto=format&fit=crop&ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D",
+    src: (user === null || user === void 0 ? void 0 : user.profileImage) || 'https://cdn.pixabay.com/photo/2015/10/05/22/37/blank-profile-picture-973460_960_720.png',
     alt: "".concat(user.name),
     className: "w-10 h-10 rounded-full object-cover"
   }), /*#__PURE__*/_react.default.createElement("p", {

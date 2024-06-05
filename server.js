@@ -1,6 +1,13 @@
 import express from 'express';
 import dotenv from 'dotenv';
 import cors from 'cors';
+import rateLimit from 'express-rate-limit';
+
+const limiter = rateLimit({
+	windowMs: 1 * 60 * 1000, // 1 minute
+	max: 250, // limit each IP to 100 requests per windowMs
+	message: 'Too many requests from this IP, please try again later',
+});
 
 // import middleware
 import logger from './middleware/logger.js';
@@ -28,6 +35,7 @@ dotenv.config({ path: './config/config.env' });
 const PORT = process.env.PORT || 5050;
 
 app.use(logger);
+app.use(limiter);
 
 // router
 app.use('/api/v1/users', users);

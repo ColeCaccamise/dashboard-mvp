@@ -11,95 +11,10 @@ import User from '../model/User.js';
 import { getImageByPublicId, uploadImage } from '../services/ImageService.js';
 import { isValidObjectId } from 'mongoose';
 
-// TODO:
-// 1. build out settings API to be an object of form
-// {
-// 	account: {
-// 		profile: {
-// 			userId: 1,
-// 			fullName: 'Cole Caccamise',
-// 			username: 'colecaccamise',
-// 			email: 'cole@caccamedia.com'
-// 		},
-// 		// whatever else
-// 	},
-// 	billing: {
-// 		plan: 'pro',
-// 		creditCard: {
-// 			lastFour: '4242',
-// 			expiration: '12/24'
-// 		}
-// 	},
-// }
-
-const userSettings = [
-	{
-		userInfo: {
-			userId: 1,
-			name: 'Cole Caccamise',
-			username: 'colecaccamise',
-			email: 'cole@dashboard-mvp.com',
-		},
-		notificationsEnabled: false,
-		userLanguage: 'en',
-		userTimezone: 'America/New_York',
-		userCommunicationPreference: 'email',
-		theme: 'dark',
-		twoFactorAuthEnabled: false,
-		billing: {
-			plan: 'pro',
-			creditCard: {
-				lastFour: '4242',
-				expiration: '12/24',
-			},
-		},
-	},
-	{
-		userInfo: {
-			userId: 2,
-			name: 'Steven Bartlett',
-			username: 'stevenbartlett',
-			email: 'steve@doac.com',
-		},
-		notificationsEnabled: false,
-		userLanguage: 'en',
-		userTimezone: 'America/New_York',
-		userCommunicationPreference: 'email',
-		theme: 'dark',
-		twoFactorAuthEnabled: false,
-		billing: {
-			plan: 'free',
-			creditCard: null,
-		},
-	},
-];
-
-const defaultValues = {
-	account: {
-		preferences: {
-			theme: {
-				interfaceTheme: 'dark',
-				availableThemes: ['dark'],
-			},
-		},
-		notifications: {
-			methods: {
-				email: {
-					enabled: false,
-				},
-			},
-		},
-		billing: {
-			plan: 'free',
-			history: [],
-		},
-	},
-};
-
 // @desc    Get all user settings
 // @route   GET /api/v1/settings
 export const getSettings = (req, res) => {
-	res.json(userSettings);
+	res.json({});
 };
 
 // @desc    Get user settings by ID
@@ -221,6 +136,8 @@ export const updateSettingsByGroupAndPage = async (req, res, next) => {
 export const getProfileImage = async (req, res, next) => {
 	const { id } = req.params;
 
+	console.log('grabbing profile image');
+
 	// validate id is an object id
 	const objectId = isValidObjectId(id);
 
@@ -229,30 +146,30 @@ export const getProfileImage = async (req, res, next) => {
 		return;
 	}
 
-	// validate user with id exists
+	// validate user with id exists©b
 	const user = await getUser(id);
 
 	if (!user) {
-		res
-			.status(404)
-			.json({ message: 'error', error: 'No user found with that ID' });
-		return;
-	}
-
-	// get profile image for user
-	const image = await getImageByPublicId(`profile-images/profile-image-${id}`);
-
-	console.log('image: ', image);
-
-	if (image) {
-		res.json({
-			message: 'Profile image found for user',
-			imageUrl: image.secure_url,
+		res.status(404).json({
+			message: 'error',
+			error: 'No user found with that ID',
+			user: user,
 		});
 		return;
 	}
 
-	res.json({ message: 'No profile image found for user', imageUrl: null });
+	// check if we have image for user in DB, if not, return no image found with placeholder
+	const image = user.profileImage;
+
+	// if image exists, return it
+	if (image) {
+		res.json({ message: 'Profile photo found', image });
+	} else {
+		res.status(204).json({
+			message: 'User has not uploaded a profile photo',
+			image: 'http://localhost:3000/profile.jpeg',
+		});
+	}
 };
 
 // @desc    Create profile picture for user
@@ -269,7 +186,6 @@ export const createProfileImage = async (req, res, next) => {
 
 	// validate user with id exists
 	const user = await getUser(id);
-	console.log('user: ', user);
 
 	if (!user) {
 		res
@@ -278,9 +194,8 @@ export const createProfileImage = async (req, res, next) => {
 		return;
 	}
 
-	console.log('here???? yep.?');
-
 	const formData = req.file;
+	console.log('formData 202: ', formData);
 	if (!formData) {
 		res.status(400).json({ message: 'error', error: 'No image provided' });
 		return;
@@ -302,10 +217,7 @@ export const createProfileImage = async (req, res, next) => {
 
 	const uploaded = await uploadImage(`profile-image-${id}`, formData.buffer)
 		.then((result) => {
-			res.status(200).json({
-				message: 'Successfully uploaded image.',
-				imageUrl: result.secure_url,
-			});
+			return result;
 		})
 		.catch((error) => {
 			res.status(500).json({ message: 'Error uploading image', error });
@@ -313,6 +225,21 @@ export const createProfileImage = async (req, res, next) => {
 
 	console.log('uploaded: ', uploaded);
 
+	if (uploaded) {
+		try {
+			user.profileImage = uploaded.secure_url;
+			await user.save();
+		} catch (error) {
+			res.status(500).json({ message: 'Error saving user', error });
+			return;
+		}
+	}
+
+	res.json({
+		message: 'Image uploaded',
+		user: user,
+	});
+	return;
 	// validate image is not too large
 	// validate user does not already have a profile picture - update otherwise
 	// upload image to cloudinary
@@ -320,7 +247,11 @@ export const createProfileImage = async (req, res, next) => {
 
 // @desc    Update profile picture for user
 // @route   PUT /api/v1/settings/:id/account/profile/image
-export const updateProfileImage = async (req, res, next) => {};
+export const updateProfileImage = async (req, res, next) => {
+	// check if we have an image in DB, if so, check for it in cloudinary
+	// if it exists, delete the image and re create
+	// if it doesn't exist, create the image
+};
 
 // @desc    Delete user settings by ID
 // @route   DELETE /api/v1/settings/:id

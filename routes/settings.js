@@ -32,8 +32,7 @@ router
 router
 	.route('/:id/account/profile/image')
 	.get(getProfileImage)
-	.post(upload.single('image'), createProfileImage)
-	.put();
+	.post(upload.single('image'), createProfileImage);
 
 router.all('*', methodNotAllowed);
 

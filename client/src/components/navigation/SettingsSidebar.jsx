@@ -14,7 +14,7 @@ import SettingsLink from './SettingsLink';
 
 function SettingsSidebar() {
 	return (
-		<aside className='w-1/5 p-4 flex flex-col justify-between'>
+		<aside className='w-1/5 p-4 flex flex-col justify-between max-w-xs'>
 			<div className='flex flex-col gap-4'>
 				<div className='flex gap-4 items-center'>
 					<Icon url='/dashboard' icon={faChevronLeft} />

@@ -7,18 +7,18 @@ function ApplicationShell({ mode, children }) {
 	switch (mode) {
 		case 'settings':
 			return (
-				<div className='flex justify-between w-full h-full'>
+				<div className='flex justify-between w-full h-full '>
 					<SettingsSidebar />
-					<main className='flex flex-col items-center w-4/5 h-full bg-neutral-900'>
+					<main className='flex flex-col items-center flex-grow h-full bg-neutral-900'>
 						<div className='w-full text-left p-16'>{children}</div>
 					</main>
 				</div>
 			);
 		default:
 			return (
-				<div className='flex justify-between w-full h-full'>
+				<div className='flex justify-between w-full h-full '>
 					<AppSidebar />
-					<main className='flex flex-col items-center w-4/5 h-full bg-neutral-900'>
+					<main className='flex flex-col items-center flex-grow h-full bg-neutral-900'>
 						{children}
 					</main>
 				</div>

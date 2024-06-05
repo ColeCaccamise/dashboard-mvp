@@ -5,8 +5,6 @@ import { getCredentialByUserId } from './CredentialService.js';
 export const getSettingsByUserId = async (userId) => {
 	const settings = await Settings.findOne({ userId }).exec();
 
-	console.log('yo: ', settings);
-
 	return settings;
 };
 
@@ -38,5 +36,3 @@ export const createSettingsForUser = async (userId) => {
 
 	return settings;
 };
-
-export const updateSettingsService = async (id, body) => {};
