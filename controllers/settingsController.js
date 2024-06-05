@@ -1,242 +1,256 @@
 import { notFoundError, existsError } from '../middleware/errors/errors.js';
 import { validateBody, validateId } from '../middleware/validation.js';
-
-const userSettings = [
-	{
-		userInfo: {
-			userId: 1,
-			name: 'Cole Caccamise',
-			username: 'colecaccamise',
-			email: 'cole@dashboard-mvp.com',
-		},
-		notificationsEnabled: false,
-		userLanguage: 'en',
-		userTimezone: 'America/New_York',
-		userCommunicationPreference: 'email',
-		theme: 'dark',
-		twoFactorAuthEnabled: false,
-		billing: {
-			plan: 'pro',
-			creditCard: {
-				lastFour: '4242',
-				expiration: '12/24',
-			},
-		},
-	},
-	{
-		userInfo: {
-			userId: 2,
-			name: 'Steven Bartlett',
-			username: 'stevenbartlett',
-			email: 'steve@doac.com',
-		},
-		notificationsEnabled: false,
-		userLanguage: 'en',
-		userTimezone: 'America/New_York',
-		userCommunicationPreference: 'email',
-		theme: 'dark',
-		twoFactorAuthEnabled: false,
-		billing: {
-			plan: 'free',
-			creditCard: null,
-		},
-	},
-];
-
-const defaultValues = {
-	notificationsEnabled: false,
-	userLanguage: 'en',
-	userTimezone: 'America/New_York',
-	userCommunicationPreference: 'email',
-	theme: 'dark',
-	twoFactorAuthEnabled: false,
-	billing: {
-		plan: 'free',
-		creditCard: null,
-	},
-};
-
-function findUser(id, next) {
-	const user = userSettings.find((user) => user.userInfo['userId'] == id);
-	if (!user) {
-		req.errorMessage = `No user settings were found for userId ${id}`;
-		req.errorType = 'userSettingsNotFound';
-		notFoundError(req, res, next);
-	}
-	return user;
-}
-
-function invalidId(id, next) {
-	parsedId = parseInt(id);
-	if (isNaN(id)) {
-		next({
-			status: 400,
-			message: 'User settings id must be a number',
-		});
-	}
-	return parsedId;
-}
+import { getUser } from '../services/UserService.js';
+import { getCredentialByUserId } from '../services/CredentialService.js';
+import {
+	createSettingsForUser,
+	getSettingsByUserId,
+} from '../services/SettingsService.js';
+import Settings from '../model/Settings.js';
+import User from '../model/User.js';
+import { getImageByPublicId, uploadImage } from '../services/ImageService.js';
+import { isValidObjectId } from 'mongoose';
 
 // @desc    Get all user settings
 // @route   GET /api/v1/settings
 export const getSettings = (req, res) => {
-	res.json(userSettings);
+	res.json({});
 };
 
 // @desc    Get user settings by ID
 // @route   GET /api/v1/settings/:id
-export const getSetting = (req, res, next) => {
-	validateId(req, res, next);
+export const getSetting = async (req, res, next) => {
+	console.log('req: ', req.body);
+	const settings = await getSettingsByUserId(req.params.id);
 
-	const user = findUser(id, next);
+	const { group, page } = req.body;
 
-	if (!user) {
-		notFoundError(req, res, next);
+	console.log(group, page);
+	console.log(settings);
+
+	if (group && page) {
+		const groupSettings = settings[group];
+		const pageSettings = groupSettings[page];
+		return res.status(200).json({ [page]: pageSettings });
+	} else if (group) {
+		const groupSettings = settings[group];
+		return res.status(200).json({ [group]: groupSettings });
 	}
 
-	res.json(user);
+	res.status(200).json({ settings });
 };
 
-// @desc    Create user settings by ID
-// @route   POST /api/v1/settings/:id
-export const createSettings = (req, res, next) => {
-	validateId(req, res, next);
-	name, username, email;
-	req.requiredFields = ['userInfo: {name, username, email}'];
-	validateBody(req, res, next);
+export const getSettingByGroupAndPage = async (req, res, next) => {
+	const { id, group, page } = req.params;
+	const settings = await getSettingsByUserId(id);
 
-	const id = parseInt(req.params.id);
+	console.log(id, group, page);
 
-	const userInfoData = req.body['userInfo'];
-
-	const includesUser = userSettings.some(
-		(user) => user.userInfo['userId'] === id
-	);
-
-	if (includesUser) {
-		req.errorMessage = `A user with userId ${req.params.id} already has settings`;
-		existsError(req, res, next);
+	if (!settings) {
+		req.errorMessage = `No user settings were found for userId ${id}`;
+		req.errorType = 'userSettingsNotFound';
+		notFoundError(req, res, next);
 		return;
 	}
 
-	// loop over the user info object and check if all required fields are present, discard all others
-	const expectedFields = ['name', 'username', 'email'];
-	const userInfo = {
-		userId: id,
-	};
+	const groupSettings = settings[group];
+	const pageSettings = groupSettings[page];
 
-	const missingFields = [];
-
-	for (let field of expectedFields) {
-		if (!userInfoData[field]) {
-			missingFields.push(field);
-		} else {
-			userInfo[field] = userInfoData[field];
-		}
+	if (!groupSettings) {
+		req.errorMessage = `No group settings were found for userId ${id} and group ${group}`;
+		req.errorType = 'groupSettingsNotFound';
+		notFoundError(req, res, next);
+		return;
 	}
 
-	if (missingFields.length > 0) {
-		res.status(400).json({
-			error: `userInfo object is missing required field(s): ${missingFields.join(
-				', '
-			)}`,
-			errorType: 'missingFields',
+	if (!pageSettings) {
+		req.errorMessage = `No page settings were found for userId ${id}, group ${group}, and page ${page}`;
+		req.errorType = 'pageSettingsNotFound';
+		notFoundError(req, res, next);
+		return;
+	}
+
+	console.log('here?');
+
+	res.status(200).json({ [page]: pageSettings });
+};
+
+// @desc    Create user settings for user
+// @route   POST /api/v1/settings
+// BODY: hash including all settings to create
+export const createSettings = async (req, res, next) => {
+	const { userId } = req.body;
+
+	const settings = createSettingsForUser(userId);
+
+	res.status(201).json(settings);
+};
+
+// @desc    Update user settings by UserID, Group ID, and Page ID
+// @route   PUT /api/v1/settings/:id/:group/:page
+export const updateSettingsByGroupAndPage = async (req, res, next) => {
+	const { id, group, page } = req.params;
+	const { email, fullName } = req.body.profile;
+
+	console.log(req.body.profile);
+
+	const setting = await Settings.findOne({ userId: id });
+	const user = await User.findOne({ _id: id });
+
+	const fields = [];
+
+	if (email) fields.push('email');
+	if (fullName) fields.push('fullName');
+
+	const credential = await getCredentialByUserId(id);
+
+	for (let field of fields) {
+		const value = req.body.profile[field];
+		setting[group][page][field] = value;
+		if (field === 'email') credential[field] = value;
+	}
+
+	if (email) {
+		const updatedEmail = req.body.profile['email'];
+		credential.email = updatedEmail;
+	}
+
+	if (fullName) {
+		const updatedFullName = req.body.profile['fullName'];
+		user.name = updatedFullName;
+	}
+
+	setting.updatedAt = Date.now();
+	credential.updatedAt = Date.now();
+	user.updatedAt = Date.now();
+
+	await setting.save();
+	await credential.save();
+	await user.save();
+
+	res.json(setting);
+};
+
+// @desc    Get profile picture for user
+// @route   GET /api/v1/settings/:id/account/profile/image
+export const getProfileImage = async (req, res, next) => {
+	const { id } = req.params;
+
+	console.log('grabbing profile image');
+
+	// validate id is an object id
+	const objectId = isValidObjectId(id);
+
+	if (!objectId) {
+		res.status(400).json({ message: 'error', error: 'Invalid ID' });
+		return;
+	}
+
+	// validate user with id exists©b
+	const user = await getUser(id);
+
+	if (!user) {
+		res.status(404).json({
+			message: 'error',
+			error: 'No user found with that ID',
+			user: user,
 		});
 		return;
 	}
 
-	const {
-		notificationsEnabled,
-		userLanguage,
-		userTimezone,
-		userCommunicationPreference,
-		billing,
-	} = req.body;
+	// check if we have image for user in DB, if not, return no image found with placeholder
+	const image = user.profileImage;
 
-	const fields = {
-		notificationsEnabled,
-		userLanguage,
-		userTimezone,
-		userCommunicationPreference,
-		billing,
-	};
-
-	const settingFields = {};
-
-	for (let field of Object.keys(fields)) {
-		const value = fields[field];
-		if (value === undefined) {
-			settingFields[field] = defaultValues[field];
-		} else {
-			settingFields[field] = fields[field];
-		}
+	// if image exists, return it
+	if (image) {
+		res.json({ message: 'Profile photo found', image });
+	} else {
+		res.status(204).json({
+			message: 'User has not uploaded a profile photo',
+			image: 'http://localhost:3000/profile.jpeg',
+		});
 	}
-
-	userSettings.push({
-		userInfo,
-		...settingFields,
-	});
-	res.json(userSettings);
 };
 
-// @desc    Update user settings by ID
-// @route   PUT /api/v1/settings/:id
-export const updateSettings = (req, res, next) => {
-	validateId(req, res, next);
+// @desc    Create profile picture for user
+// @route   POST /api/v1/settings/:id/account/profile/image
+export const createProfileImage = async (req, res, next) => {
+	const { id } = req.params;
 
-	const id = parseInt(req.params.id);
+	// validate id is an object id
+	const objectId = isValidObjectId(id);
+	if (!objectId) {
+		res.status(400).json({ message: 'error', error: 'Invalid ID' });
+		return;
+	}
 
-	const user = userSettings.find((user) => user['userInfo']['userId'] === id);
+	// validate user with id exists
+	const user = await getUser(id);
 
 	if (!user) {
-		req.errorMessage = `No user profile was found with userId ${id}`;
-		req.errorType = 'userSettingsNotFound';
-		notFoundError(req, res, next);
+		res
+			.status(404)
+			.json({ message: 'error', error: 'No user found with that ID' });
+		return;
 	}
 
-	const {
-		notificationsEnabled,
-		userLanguage,
-		userTimezone,
-		userCommunicationPreference,
-		billing,
-		theme,
-		userInfo,
-	} = req.body;
+	const formData = req.file;
+	console.log('formData 202: ', formData);
+	if (!formData) {
+		res.status(400).json({ message: 'error', error: 'No image provided' });
+		return;
+	}
 
-	const fields = {
-		notificationsEnabled,
-		userLanguage,
-		userTimezone,
-		userCommunicationPreference,
-		billing,
-		theme,
-		userInfo,
-	};
+	// validate image is of proper filetypes: JPEG PNG GIF WEBP\
+	const fileType = formData.mimetype;
+	if (
+		fileType !== 'image/jpeg' &&
+		fileType !== 'image/png' &&
+		fileType !== 'image/gif' &&
+		fileType !== 'image/webp'
+	) {
+		res.status(400).json({ message: 'error', error: 'Invalid file type' });
+		return;
+	}
 
-	const fieldsToUpdate = [];
+	console.log(formData);
 
-	for (let field of Object.keys(fields)) {
-		const value = fields[field];
+	const uploaded = await uploadImage(`profile-image-${id}`, formData.buffer)
+		.then((result) => {
+			return result;
+		})
+		.catch((error) => {
+			res.status(500).json({ message: 'Error uploading image', error });
+		});
 
-		if (value) {
-			fieldsToUpdate.push(field);
+	console.log('uploaded: ', uploaded);
+
+	if (uploaded) {
+		try {
+			user.profileImage = uploaded.secure_url;
+			await user.save();
+		} catch (error) {
+			res.status(500).json({ message: 'Error saving user', error });
+			return;
 		}
 	}
 
-	for (let field of fieldsToUpdate) {
-		if (field == 'userInfo') {
-			// name, username, email (ONLY values we want to update)
-			const { name, username, email } = fields.userInfo;
-			user.userInfo.name = name;
-			user.userInfo.username = username;
-			user.userInfo.email = email;
-		} else {
-			user[field] = fields[field];
-		}
-	}
+	res.json({
+		message: 'Image uploaded',
+		user: user,
+	});
+	return;
+	// validate image is not too large
+	// validate user does not already have a profile picture - update otherwise
+	// upload image to cloudinary
+};
 
-	res.json(user);
+// @desc    Update profile picture for user
+// @route   PUT /api/v1/settings/:id/account/profile/image
+export const updateProfileImage = async (req, res, next) => {
+	// check if we have an image in DB, if so, check for it in cloudinary
+	// if it exists, delete the image and re create
+	// if it doesn't exist, create the image
 };
 
 // @desc    Delete user settings by ID
@@ -259,9 +273,7 @@ export const deleteSettings = (req, res, next) => {
 // @route   *
 export const methodNotAllowed = (req, res) => {
 	const method = req.method;
-	res
-		.status(405)
-		.json({
-			message: `${method} method not allowed for /api/v1/settings${req.url}`,
-		});
+	res.status(405).json({
+		message: `${method} method not allowed for /api/v1/settings${req.url}`,
+	});
 };

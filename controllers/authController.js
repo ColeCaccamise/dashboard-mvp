@@ -1,11 +1,19 @@
 import bcrypt from 'bcrypt';
 import colors from 'colors';
+import jwt from 'jsonwebtoken';
+import dotenv from 'dotenv';
+
+dotenv.config({ path: '../config/config.env' });
+
+const JWT_SECRET = process.env.JWT_SECRET;
 
 import Credential from '../model/Credential.js';
+import User from '../model/User.js';
 
 import { createUser } from '../services/UserService.js';
-
 import { generateToken } from '../services/AuthService.js';
+import { createCredentials } from '../services/CredentialService.js';
+import { createSettingsForUser } from '../services/SettingsService.js';
 
 const userCredentials = [
 	{
@@ -28,13 +36,37 @@ const userCredentials = [
 	},
 ];
 
+// @desc    verify that JWT is valid, return user data
+// @route   GET /api/v1/auth/verify
+export const verify = async (req, res, next) => {
+	const token = req.cookies.authToken;
+
+	if (!token) {
+		res.status(401).json({ error: 'No token provided.' });
+		return;
+	}
+
+	let decoded;
+
+	try {
+		decoded = jwt.verify(token, JWT_SECRET);
+		const user = await User.findOne({ _id: decoded.userId }).exec();
+		console.log(user);
+		res.json({ user });
+	} catch (error) {
+		error.status = 401;
+		error.message = 'Invalid token.';
+		next(error);
+	}
+};
+
 // @desc    register a new user
 // @route   POST /api/v1/auth/register
 export const register = async (req, res, next) => {
-	const { username, password, email } = req.body;
+	const { email, password } = req.body;
 
 	const missingFields = [];
-	const requiredFields = ['name', 'username', 'password', 'email'];
+	const requiredFields = ['name', 'password', 'email'];
 
 	for (let field of requiredFields) {
 		if (!req.body[field]) {
@@ -51,97 +83,120 @@ export const register = async (req, res, next) => {
 		return;
 	}
 
-	// TODO: validate username/email doesn't already exist
+	// validate email doesn't already exist
+	const existingEmail = await Credential.findOne({
+		email: email,
+	}).exec();
 
-	// hash password
-	const saltRounds = 10;
-	bcrypt.hash(password, saltRounds, async function (err, hash) {
-		if (err) {
-			res.status(500).json({ error: 'Failed to hash password.' });
-		} else {
-			try {
-				const user = await createUser(req.body);
+	if (existingEmail) {
+		const error = new Error('A user already exists with that email.');
+		error.status = 400;
+		return next(error);
+	}
 
-				const token = generateToken(user);
+	try {
+		const oldUser = await createUser(req.body);
 
-				const credential = await Credential.create({
-					userId: user._id,
-					username: username,
-					email: email,
-					hashedPassword: hash,
-					role: 'user',
-				});
+		const { user, credential } = await createCredentials(
+			oldUser,
+			email,
+			password
+		);
 
-				res.json({ message: 'User created successfully.', token, credential });
-			} catch (error) {
-				console.error('Error creating user: ', error);
-				res.status(500).json({ error: 'Failed to create user.' });
-				return;
-			}
-		}
-	});
+		const token = generateToken(user);
+
+		res.cookie('authToken', token, {
+			httpOnly: true,
+			secure: true,
+			maxAge: 604800000, // cookie validity in milliseconds (7d)
+		});
+
+		console.log(`user (${credential.email}) created`.green.bold);
+
+		createSettingsForUser(user._id);
+
+		res.json({ message: 'User successfully created.', token, credential });
+	} catch (error) {
+		next(error);
+	}
 };
 
 // @desc    login a user
 // @route   POST /api/v1/auth/login
-export const login = async (req, res) => {
-	const { username, password, email } = req.body;
+export const login = async (req, res, next) => {
+	const { email, password } = req.body;
 
-	// get user from database with username or email
-	const user = await Credential.findOne({ username: username }).exec();
+	try {
+		// get user from database with username or email
+		const credential = await Credential.findOne({ email: email }).exec();
+		const hash = credential?.hashedPassword;
 
-	const hash = user.hashedPassword;
+		bcrypt.compare(password, hash, async function (err, result) {
+			if (err) {
+				res.status(500).json({ error: 'Failed to compare passwords.' });
+				return;
+			}
+			if (result) {
+				// create JWT
+				const token = generateToken(credential, 'credential');
 
-	bcrypt.compare(password, hash, async function (err, result) {
-		if (err) {
-			res.status(500).json({ error: 'Failed to compare passwords.' });
-			return;
-		}
-		if (result) {
-			// create JWT
-			const token = generateToken(user);
+				// update user's last login
+				credential.lastLogin = Date.now();
+				credential.save();
 
-			// update user's last login
-			user.lastLogin = Date.now();
-			user.save();
+				const userData = await User.findOne({ _id: credential.userId }).exec();
 
-			res.json({ message: 'User logged in successfully.', token });
-		} else {
-			res.status(401).json({ error: 'Incorrect password.' });
-		}
-	});
+				res.cookie('authToken', token, {
+					httpOnly: true,
+					secure: true,
+					maxAge: 604800000, // cookie validity in milliseconds (7d)
+				});
+
+				res.json({
+					message: 'User logged in successfully.',
+					user: userData,
+					token,
+				});
+			} else {
+				// TODO log excessive failed login attempts - rate limit ip 5 per 30mins - lock account after 5 for 30 mins
+
+				const error = new Error('Incorrect username or password.');
+				return next(error);
+			}
+		});
+	} catch (err) {
+		const error = new Error('Account not found.');
+		error.status = 404;
+		next(error);
+	}
 };
 
 // @desc    logout a user
 // @route   POST /api/v1/auth/logout
 export const logout = (req, res) => {
-	const { username, email } = req.body;
-	if (!username && !email) {
-		res.status(400).json({ error: 'Username or email required.' });
+	const token = req.cookies.authToken;
+
+	if (!token) {
+		res.status(401).json({ error: 'No token provided.' });
 		return;
 	}
 
-	let user;
+	const decoded = jwt.verify(token, JWT_SECRET);
 
-	if (email) {
-		const emailExists = userCredentials.some((user) => user.email == email);
-		if (!emailExists) {
-			res.status(400).json({ error: 'No user found with that email.' });
-			return;
-		}
-		user = userCredentials.find((user) => user.email == email);
-	} else {
-		const usernameExists = userCredentials.some(
-			(user) => user.username == username
-		);
-		if (!usernameExists) {
-			res.status(400).json({ error: 'No user found with that username.' });
-			return;
-		}
-		user = userCredentials.find((user) => user.username == username);
+	if (!decoded) {
+		res.status(401).json({ error: 'Invalid token.' });
+		return;
 	}
 
-	user.isSignedIn = false;
+	console.log('logging out decoded: ', decoded);
+
+	const userId = decoded.userId;
+	const credentialId = decoded.credentialId;
+
+	const user = User.findOne({ _id: userId }).exec();
+	const credential = Credential.findOne({ _id: credentialId }).exec();
+
+	res.clearCookie('authToken');
 	res.json({ message: 'User logged out successfully.', user });
 };
 

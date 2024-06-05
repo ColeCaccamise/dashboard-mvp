@@ -5,11 +5,14 @@ router.use(express.json()); // not including this resulted in an undefined req.b
 
 // controllers
 import {
+	verify,
 	register,
 	login,
 	logout,
 	methodNotAllowed,
 } from '../controllers/authController.js';
+
+router.route('/verify').get(verify);
 
 router.route('/register').post(register);
 

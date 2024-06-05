@@ -3,17 +3,29 @@
 	"version": "0.1.0",
 	"private": true,
 	"dependencies": {
+		"@fortawesome/fontawesome-svg-core": "^6.5.2",
+		"@fortawesome/free-brands-svg-icons": "^6.5.2",
+		"@fortawesome/free-regular-svg-icons": "^6.5.2",
+		"@fortawesome/free-solid-svg-icons": "^6.5.2",
+		"@fortawesome/react-fontawesome": "^0.2.0",
+		"@react-email/components": "0.0.19",
 		"@testing-library/jest-dom": "^5.17.0",
 		"@testing-library/react": "^13.4.0",
 		"@testing-library/user-event": "^13.5.0",
 		"axios": "^1.6.8",
 		"react": "^18.3.1",
 		"react-dom": "^18.3.1",
+		"react-email": "2.1.4",
+		"react-router-dom": "^6.23.1",
 		"react-scripts": "5.0.1",
+		"react-toastify": "^10.0.5",
+		"resend": "^3.2.0",
 		"web-vitals": "^2.1.4"
 	},
 	"scripts": {
-		"start": "react-scripts start"
+		"start": "react-scripts start",
+		"dev-email": "email dev --port 3030",
+		"babel": "babel src --out-dir dist"
 	},
 	"eslintConfig": {
 		"extends": [
@@ -39,6 +51,12 @@
 	"license": "ISC",
 	"proxy": "http://localhost:5050",
 	"devDependencies": {
+		"@babel/cli": "^7.24.6",
+		"@babel/core": "^7.24.6",
+		"@babel/preset-env": "^7.24.6",
+		"@babel/preset-react": "^7.24.6",
+		"postcss-import": "^16.1.0",
+		"sass": "^1.77.1",
 		"tailwindcss": "^3.4.3"
 	}
 }
