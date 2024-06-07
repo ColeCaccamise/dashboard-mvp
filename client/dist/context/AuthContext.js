@@ -29,8 +29,7 @@ function AuthContextProvider(_ref) {
   const [user, setUser] = (0, _react.useState)(null);
   (0, _react.useEffect)(() => {
     checkUser().then(data => {
-      console.log('data?: ', data);
-      setUser(data.user);
+      setUser(data === null || data === void 0 ? void 0 : data.user);
     }).catch(err => {
       console.error('Error verifying user: ', err);
     });

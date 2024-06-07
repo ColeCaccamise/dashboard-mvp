@@ -2,6 +2,7 @@ import bcrypt from 'bcrypt';
 import colors from 'colors';
 import jwt from 'jsonwebtoken';
 import dotenv from 'dotenv';
+import { isFakeEmailOnline } from 'fakefilter';
 
 dotenv.config({ path: '../config/config.env' });
 
@@ -15,26 +16,7 @@ import { generateToken } from '../services/AuthService.js';
 import { createCredentials } from '../services/CredentialService.js';
 import { createSettingsForUser } from '../services/SettingsService.js';
 
-const userCredentials = [
-	{
-		username: 'colecaccamise',
-		email: 'cole@dashboard-mvp.com',
-		password: 'brody123',
-		userId: 1,
-		decoded: '',
-		lastSignIn: null,
-		isSignedIn: false,
-	},
-	{
-		username: 'stevenbartlett',
-		email: 'steve@doac.com',
-		password: 'web3',
-		userId: 2,
-		decoded: null,
-		lastSignIn: null,
-		isSignedIn: false,
-	},
-];
+import { sendConfirmationEmail } from '../services/EmailService.js';
 
 // @desc    verify that JWT is valid, return user data
 // @route   GET /api/v1/auth/verify
@@ -103,7 +85,19 @@ export const register = async (req, res, next) => {
 			password
 		);
 
+		// flag temporary email
+		if (isFakeEmailOnline(credential.email)) {
+			console.log(
+				`User id ${user._id} flagged for temp email: ${credential.email}.`
+			);
+			credential.temporaryEmail = true;
+			await credential.save();
+		}
+
 		const token = generateToken(user);
+
+		// send confirmation email
+		await sendConfirmationEmail(user);
 
 		res.cookie('authToken', token, {
 			httpOnly: true,
@@ -111,12 +105,44 @@ export const register = async (req, res, next) => {
 			maxAge: 604800000, // cookie validity in milliseconds (7d)
 		});
 
-		console.log(`user (${credential.email}) created`.green.bold);
-
 		createSettingsForUser(user._id);
 
 		res.json({ message: 'User successfully created.', token, credential });
 	} catch (error) {
+		next(error);
+	}
+};
+
+// @desc    confirm a user's email address
+// @route   POST /api/v1/auth/confirm
+export const confirm = async (req, res, next) => {
+	const { token } = req.params;
+
+	if (!token) {
+		const error = new Error('No token provided.');
+		error.status = 403;
+		next(error);
+		return;
+	}
+
+	let decoded;
+
+	try {
+		decoded = jwt.verify(token, JWT_SECRET);
+		const user = await User.findOne({ _id: decoded.userId }).exec();
+		user.verified = true;
+		await user.save();
+
+		res.json({ user });
+	} catch (error) {
+		error.status = 401;
+		if (error.name === 'TokenExpiredError') {
+			error.message = 'This link has expired.';
+			error.toastType = 'warning';
+		} else {
+			error.message = 'Invalid confirmation link.';
+		}
+
 		next(error);
 	}
 };

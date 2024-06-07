@@ -22,8 +22,7 @@ function AuthContextProvider({ children }) {
 	useEffect(() => {
 		checkUser()
 			.then((data) => {
-				console.log('data?: ', data);
-				setUser(data.user);
+				setUser(data?.user);
 			})
 			.catch((err) => {
 				console.error('Error verifying user: ', err);

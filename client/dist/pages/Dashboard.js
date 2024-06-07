@@ -18,6 +18,7 @@ function Dashboard() {
     user,
     setUser
   } = (0, _AuthContext.useAuthContext)();
+  const [timeOfDay, setTimeOfDay] = (0, _react.useState)('evening');
   const toast = (type, message) => {
     if (type) {
       _reactToastify.toast[type](message, {});
@@ -25,26 +26,19 @@ function Dashboard() {
       (0, _reactToastify.toast)(message, {});
     }
   };
+  (0, _react.useEffect)(() => {
+    const date = new Date();
+    const hours = date.getHours();
+    if (hours < 12) {
+      setTimeOfDay('morning');
+    } else if (hours < 18) {
+      setTimeOfDay('afternoon');
+    } else {
+      setTimeOfDay('evening');
+    }
+  }, []);
   return /*#__PURE__*/_react.default.createElement(_ApplicationShell.default, null, /*#__PURE__*/_react.default.createElement("div", null, /*#__PURE__*/_react.default.createElement("h1", {
     className: "text-white text-lg font-bold"
-  }, "Welcome back, ", user.name), /*#__PURE__*/_react.default.createElement(_Logout.default, null), /*#__PURE__*/_react.default.createElement("button", {
-    className: "text-white",
-    onClick: async () => {
-      console.log('starting up...');
-      try {
-        await _axios.default.post('/api/v1/emails/confirm', {
-          userId: user._id
-        }).then(res => {
-          toast('success', 'Email sent');
-          console.log('email sent', res.data);
-        }).catch(error => {
-          toast('error', 'Error sending email');
-          console.error('error sending email', error);
-        });
-      } catch (error) {
-        console.error(error);
-      }
-    }
-  }, "Send email")));
+  }, "Good ", timeOfDay, ", ", user.name), /*#__PURE__*/_react.default.createElement(_Logout.default, null)));
 }
 var _default = exports.default = Dashboard;

@@ -83,13 +83,6 @@ function Profile() {
       setIsSubmitting(false);
     });
   };
-  const getImage = async () => {
-    await _axios.default.get("/api/v1/settings/".concat(user._id, "/account/profile/image")).then(res => {
-      setUser(res.data.user);
-    }).catch(err => {
-      console.log('error: ', err);
-    });
-  };
   (0, _react.useEffect)(() => {
     const group = 'account';
     const page = 'profile';
@@ -103,8 +96,22 @@ function Profile() {
       });
     };
     getSettings();
-    getImage();
   }, []);
+
+  // useEffect(() => {
+  // 	const getImage = async () => {
+  // 		await axios
+  // 			.get(`/api/v1/settings/${user._id}/account/profile/image`)
+  // 			.then((res) => {
+  // 				setUser(res.data.user);
+  // 			})
+  // 			.catch((err) => {
+  // 				console.log('error: ', err);
+  // 			});
+  // 	};
+
+  // 	getImage();
+  // });
 
   // useEffect(() => {
   // 	getImage();

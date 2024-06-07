@@ -14,7 +14,7 @@ var _SettingsLink = _interopRequireDefault(require("./SettingsLink"));
 function _interopRequireDefault(e) { return e && e.__esModule ? e : { default: e }; }
 function SettingsSidebar() {
   return /*#__PURE__*/_react.default.createElement("aside", {
-    className: "w-1/5 p-4 flex flex-col justify-between"
+    className: "w-1/5 p-4 flex flex-col justify-between max-w-xs"
   }, /*#__PURE__*/_react.default.createElement("div", {
     className: "flex flex-col gap-4"
   }, /*#__PURE__*/_react.default.createElement("div", {

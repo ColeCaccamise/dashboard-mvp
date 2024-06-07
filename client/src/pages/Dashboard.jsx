@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useAuthContext } from '../context/AuthContext';
 import Logout from './auth/Logout';
 import ApplicationShell from '../components/ApplicationShell';
@@ -8,6 +8,8 @@ import { toast as toastify } from 'react-toastify';
 function Dashboard() {
 	const { user, setUser } = useAuthContext();
 
+	const [timeOfDay, setTimeOfDay] = useState('evening');
+
 	const toast = (type, message) => {
 		if (type) {
 			toastify[type](message, {});
@@ -16,35 +18,25 @@ function Dashboard() {
 		}
 	};
 
+	useEffect(() => {
+		const date = new Date();
+		const hours = date.getHours();
+		if (hours < 12) {
+			setTimeOfDay('morning');
+		} else if (hours < 18) {
+			setTimeOfDay('afternoon');
+		} else {
+			setTimeOfDay('evening');
+		}
+	}, []);
+
 	return (
 		<ApplicationShell>
 			<div>
 				<h1 className='text-white text-lg font-bold'>
-					Welcome back, {user.name}
+					Good {timeOfDay}, {user.name}
 				</h1>
 				<Logout />
-				<button
-					className='text-white'
-					onClick={async () => {
-						console.log('starting up...');
-						try {
-							await axios
-								.post('/api/v1/emails/confirm', { userId: user._id })
-								.then((res) => {
-									toast('success', 'Email sent');
-									console.log('email sent', res.data);
-								})
-								.catch((error) => {
-									toast('error', 'Error sending email');
-									console.error('error sending email', error);
-								});
-						} catch (error) {
-							console.error(error);
-						}
-					}}
-				>
-					Send email
-				</button>
 			</div>
 		</ApplicationShell>
 	);

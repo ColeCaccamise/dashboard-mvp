@@ -7,6 +7,7 @@ router.use(express.json()); // not including this resulted in an undefined req.b
 import {
 	verify,
 	register,
+	confirm,
 	login,
 	logout,
 	methodNotAllowed,
@@ -15,6 +16,8 @@ import {
 router.route('/verify').get(verify);
 
 router.route('/register').post(register);
+
+router.route('/confirm/:token').post(confirm);
 
 router.route('/login').post(login);
 
