@@ -16,3 +16,14 @@ export const generateToken = (user) => {
 
 	return token;
 };
+
+export const generateConfirmationToken = (user) => {
+	const userId = user._id;
+
+	const data = { userId };
+	const token = jwt.sign(data, JWT_SECRET, {
+		expiresIn: '15m',
+	});
+
+	return token;
+};

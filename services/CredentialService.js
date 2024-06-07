@@ -23,7 +23,7 @@ export const createCredentials = async (user, email, password) => {
 						userId: user._id,
 						email: email,
 						hashedPassword: hash,
-						role: 'user',
+						verified: false,
 					});
 
 					user.credentialId = credential._id;

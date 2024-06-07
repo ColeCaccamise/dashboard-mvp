@@ -7,10 +7,12 @@ const errorHandler = (err, req, res, next) => {
 	const requiredFields = err.requiredFields;
 	const optionalFields = err.optionalFields;
 	const serverMessage = err.serverMessage;
+	const toastType = err.toastType;
 
 	res.status(status).json({
 		error: message,
 		errorType,
+		toastType,
 		requiredFields,
 		optionalFields,
 	});

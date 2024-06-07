@@ -1,4 +1,4 @@
-import { sendEmail } from '../services/EmailService.js';
+import { sendEmail, sendConfirmationEmail } from '../services/EmailService.js';
 import { getUser } from '../services/UserService.js';
 
 // @desc send a confirmation emial
@@ -8,14 +8,9 @@ export const confirmEmail = async (req, res, next) => {
 
 	const user = await getUser(userId);
 
-	const recipient = 'colecaccamise@gmail.com';
+	console.log(user);
 
-	req.sender = 'onboarding@resend.dev';
-	req.recipient = recipient;
-
-	req.subject = 'Please Confirm Your Email for Dashboard MVP';
-
-	await sendEmail(req, res, next)
+	await sendConfirmationEmail(user)
 		.then((resp) => {
 			res.status(200).json({ success: true, response: resp });
 		})

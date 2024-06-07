@@ -1,12 +1,6 @@
 // import logo from '../client/public/Dark Logo.png';
 
-export const confirmEmailTemplate = (
-	name,
-	email,
-	imageUrl,
-	code,
-	confirmUrl
-) => {
+export const confirmEmailTemplate = (name, email, imageUrl, confirmUrl) => {
 	return `
     <!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
     <html dir="ltr" lang="en">
@@ -37,7 +31,7 @@ export const confirmEmailTemplate = (
                 cellspacing="0"
                 role="presentation"
                 style="
-                    max-width: 465px;
+                    max-width: 365px;
                     border-width: 1px;
                     border-style: solid;
                     border-color: rgb(234, 234, 234);
@@ -67,6 +61,8 @@ export const confirmEmailTemplate = (
                                             <img
                                                 alt="Dashboard MVP"
                                                 src=${imageUrl}
+                                                width="100"
+                                                height="auto"
                                                 style="
                                                     display: block;
                                                     outline: none;
@@ -117,8 +113,7 @@ export const confirmEmailTemplate = (
                                     color: rgb(0, 0, 0);
                                 "
                             >
-                                Your confirmation code is <strong>${code}</strong>. Enter it in
-                                your browser (or click the button below) and we'll help you get
+                                To complete account registration, click the button below and we'll help you get
                                 signed in.
                             </p>
     
@@ -233,7 +228,11 @@ export const confirmEmailTemplate = (
                                 "
                             >
                                 This email was intended for<!-- -->
-                                <span style="color: rgb(0, 0, 0)">${email}</span>.
+                                <span style="
+                                        color: rgb(37, 99, 235);
+                                        text-decoration: none;
+                                        text-decoration-line: none;
+                                    ">${email}</span>.
                                 If you didn't request this email, you can safely ignore it.
                             </p>
                         </td>
